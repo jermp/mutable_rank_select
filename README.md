@@ -6,12 +6,12 @@ A C++ library providing rank/select queries over dynamic bitvectors.
 Compiling the code <a name="compiling"></a>
 ------------------
 
-<!--The code is tested on Linux with `gcc` 7.4 and 9.2.1; on Mac 10.14 with `clang` 10.0.0 and 11.0.0.-->
+The code is tested on Linux with `gcc` 7.4 and 9.2.1; on Mac 10.14 with `clang` 10.0.0 and 11.0.0.
 To build the code, [`CMake`](https://cmake.org/) is required.
 
 Clone the repository with
 
-	git clone --recursive https://github.com/jermp/dyrs.git
+	git clone --recursive https://github.com/jermp/dynamic_rank_select.git
 
 If you have cloned the repository without `--recursive`, you will need to perform the following commands before
 compiling:
