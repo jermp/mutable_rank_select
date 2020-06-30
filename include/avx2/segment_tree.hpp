@@ -160,7 +160,7 @@ struct segment_tree {
         if constexpr (Height == 1) { SUM_H1 }
         if constexpr (Height == 2) { SUM_H2 }
         if constexpr (Height == 3) { SUM_H3 }
-        // if constexpr (Height == 4) { SUM_H4 }
+        if constexpr (Height == 4) { SUM_H4 }
     }
 
     void update(uint64_t i, int8_t delta) {
@@ -168,7 +168,7 @@ struct segment_tree {
         if constexpr (Height == 1) { UPDATE_H1 }
         if constexpr (Height == 2) { UPDATE_H2 }
         if constexpr (Height == 3) { UPDATE_H3 }
-        // if constexpr (Height == 4) { UPDATE_H4 }
+        if constexpr (Height == 4) { UPDATE_H4 }
     }
 
 private:
