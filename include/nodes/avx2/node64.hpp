@@ -91,7 +91,16 @@ struct node64 {
             if (keys[i] > x) break;
         }
 #else
-
+        __m256i cmp1 = _mm256_cmpgt_epi32(
+            _mm256_loadu_si256((__m256i const*)summary), _mm256_set1_epi32(x));
+        i = index_fs<32>(cmp1) - 1;
+        assert(i < num_segments);
+        x -= summary[i];
+        i *= segment_size;
+        __m256i cmp2 =
+            _mm256_cmpgt_epi32(_mm256_loadu_si256((__m256i const*)(keys + i)),
+                               _mm256_set1_epi32(x));
+        i += index_fs<32>(cmp2);
 #endif
         assert(i < fanout);
         return i;

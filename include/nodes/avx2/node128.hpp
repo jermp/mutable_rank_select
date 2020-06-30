@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "immintrin.h"
+#include "search_common.hpp"
 #include "../common.hpp"
 #include "../tables.hpp"
 
@@ -90,7 +91,16 @@ struct node128 {
             if (keys[i] > x) break;
         }
 #else
-
+        __m128i cmp1 = _mm_cmpgt_epi16(_mm_loadu_si128((__m128i const*)summary),
+                                       _mm_set1_epi16(x));
+        i = index_fs<16>(cmp1) - 1;
+        assert(i < num_segments);
+        x -= summary[i];
+        i *= segment_size;
+        __m256i cmp2 =
+            _mm256_cmpgt_epi16(_mm256_loadu_si256((__m256i const*)(keys + i)),
+                               _mm256_set1_epi16(x));
+        i += index_fs<16>(cmp2);
 #endif
         assert(i < fanout);
         return i;
