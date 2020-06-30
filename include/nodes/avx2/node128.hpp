@@ -3,11 +3,11 @@
 #include <cassert>
 
 #include "immintrin.h"
+#include "tables.hpp"
 #include "search_common.hpp"
 #include "../common.hpp"
-#include "../tables.hpp"
 
-namespace dyrs {
+namespace dyrs::avx2 {
 
 struct node128 {
     typedef uint16_t key_type;  // each key should be an integer in [0,2^8]
@@ -26,7 +26,7 @@ struct node128 {
     }
 
     static std::string name() {
-        return "node128";
+        return "avx2::node128";
     }
 
     node128(uint8_t* ptr) {
@@ -55,15 +55,14 @@ struct node128 {
 #else
         bool sign = delta >> 7;
 
-        __m128i s1 = _mm_load_si128((__m128i const*)tables::avx2::update_8_16 +
-                                    j + sign * num_segments);
+        __m128i s1 = _mm_load_si128((__m128i const*)tables::update_8_16 + j +
+                                    sign * num_segments);
         __m128i r1 =
             _mm_add_epi16(_mm_loadu_si128((__m128i const*)summary), s1);
         _mm_storeu_si128((__m128i*)summary, r1);
 
-        __m256i s2 =
-            _mm256_load_si256((__m256i const*)tables::avx2::update_16_16 + k +
-                              sign * segment_size);
+        __m256i s2 = _mm256_load_si256((__m256i const*)tables::update_16_16 +
+                                       k + sign * segment_size);
         __m256i r2 = _mm256_add_epi16(
             _mm256_loadu_si256((__m256i const*)(keys + j * segment_size)), s2);
         _mm256_storeu_si256((__m256i*)(keys + j * segment_size), r2);
@@ -111,4 +110,4 @@ private:
     key_type* keys;
 };
 
-}  // namespace dyrs
+}  // namespace dyrs::avx2

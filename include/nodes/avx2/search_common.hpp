@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs {
+namespace dyrs::avx2 {
 
 // find index of "first set" (fs) -- 128-bit version
 template <uint64_t word_bits>  // 8, 16, 32, 64
@@ -24,4 +24,4 @@ inline static uint64_t index_fs(__m256i const& vec) {
     return index;
 }
 
-}  // namespace dyrs
+}  // namespace dyrs::avx2

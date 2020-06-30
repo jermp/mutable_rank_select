@@ -8,13 +8,9 @@
 #endif
 #endif
 
-#ifdef AVX_512
-#define ALIGNEMENT ALIGNED(64)
-#else
 #define ALIGNEMENT ALIGNED(32)
-#endif
 
-namespace dyrs::tables::avx2 {
+namespace dyrs::avx2::tables {
 
 // used by node32
 static const int64_t update_4_64[4 * 4 * 2] ALIGNEMENT = {
@@ -92,4 +88,4 @@ static const int16_t update_16_16[16 * 16 * 2] ALIGNEMENT = {
 
 };
 
-}  // namespace dyrs::tables::avx2
+}  // namespace dyrs::avx2::tables
