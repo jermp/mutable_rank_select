@@ -40,16 +40,12 @@ struct segment_tree {
             num_nodes_per_level[--h] = m;
             total_bytes += m * node128::bytes;
 
-            if (m > 1) {
-                m = std::ceil(static_cast<double>(m) / node64::fanout);
-                num_nodes_per_level[--h] = m;
-                total_bytes += m * node64::bytes;
-            }
-
-            if (m > 1) {
-                m = std::ceil(static_cast<double>(m) / node64::fanout);
-                num_nodes_per_level[--h] = m;
-                total_bytes += m * node64::bytes;
+            for (int twice = 0; twice != 2; ++twice) {
+                if (m > 1) {
+                    m = std::ceil(static_cast<double>(m) / node64::fanout);
+                    num_nodes_per_level[--h] = m;
+                    total_bytes += m * node64::bytes;
+                }
             }
 
             if (m > 1) {
@@ -163,7 +159,7 @@ struct segment_tree {
         assert(i < size());
         if constexpr (Height == 1) { SUM_H1 }
         if constexpr (Height == 2) { SUM_H2 }
-        // if constexpr (Height == 3) { SUM_H3 }
+        if constexpr (Height == 3) { SUM_H3 }
         // if constexpr (Height == 4) { SUM_H4 }
     }
 
@@ -171,7 +167,7 @@ struct segment_tree {
         assert(i < size());
         if constexpr (Height == 1) { UPDATE_H1 }
         if constexpr (Height == 2) { UPDATE_H2 }
-        // if constexpr (Height == 3) { UPDATE_H3 }
+        if constexpr (Height == 3) { UPDATE_H3 }
         // if constexpr (Height == 4) { UPDATE_H4 }
     }
 
