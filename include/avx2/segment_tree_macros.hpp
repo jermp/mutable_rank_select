@@ -102,4 +102,51 @@ namespace dyrs::avx2 {
     node3.update(child3 + 1, delta);                                      \
     node4.update(child4, delta);
 
+#define SEARCH_H1                  \
+    node128 node1(m_ptr);          \
+    uint64_t i1 = node1.search(x); \
+    return i1;
+
+#define SEARCH_H2                                               \
+    node64 node1(m_ptr);                                        \
+    uint64_t i1 = node1.search(x) - 1;                          \
+    x -= node1.sum(i1);                                         \
+    node128 node2(m_ptr + node64::bytes + i1 * node128::bytes); \
+    uint64_t i2 = node2.search(x);                              \
+    return i1 * node128::fanout + i2;
+
+#define SEARCH_H3                                                          \
+    node64 node1(m_ptr);                                                   \
+    uint64_t i1 = node1.search(x) - 1;                                     \
+    x -= node1.sum(i1);                                                    \
+    node64 node2(m_ptr + (i1 + 1) * node64::bytes);                        \
+    uint64_t i2 = node2.search(x) - 1;                                     \
+    x -= node2.sum(i2);                                                    \
+    node128 node3(m_ptr + (1 + m_num_nodes_per_level[1]) * node64::bytes + \
+                  (i2 + i1 * node64::fanout) * node128::bytes);            \
+    uint64_t i3 = node3.search(x);                                         \
+    return i1 * node128::fanout * node64::fanout + i2 * node128::fanout + i3;
+
+#define SEARCH_H4                                                           \
+    node32 node1(m_ptr);                                                    \
+    uint64_t i1 = node1.search(x) - 1;                                      \
+    x -= node1.sum(i1);                                                     \
+    node64 node2(m_ptr + node32::bytes + i1 * node64::bytes);               \
+    uint64_t i2 = node2.search(x) - 1;                                      \
+    x -= node2.sum(i2);                                                     \
+    node64 node3(m_ptr + node32::bytes +                                    \
+                 m_num_nodes_per_level[1] * node64::bytes +                 \
+                 (i2 + i1 * node64::fanout) * node64::bytes);               \
+    uint64_t i3 = node3.search(x) - 1;                                      \
+    x -= node3.sum(i3);                                                     \
+    node128 node4(                                                          \
+        m_ptr + node32::bytes +                                             \
+        (m_num_nodes_per_level[1] + m_num_nodes_per_level[2]) *             \
+            node64::bytes +                                                 \
+        (i3 + i2 * node64::fanout + i1 * node64::fanout * node64::fanout) * \
+            node128::bytes);                                                \
+    uint64_t i4 = node4.search(x);                                          \
+    return i1 * node128::fanout * node64::fanout * node64::fanout +         \
+           i2 * node128::fanout * node64::fanout + i3 * node128::fanout + i4;
+
 }  // namespace dyrs::avx2

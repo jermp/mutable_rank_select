@@ -74,10 +74,10 @@ struct node128 {
         return summary[i / segment_size] + keys[i];
     }
 
-    /* return the smallest i in [0,b-1] such that sum(i) > x;
-       in our case x is guaranteed to always be < sum(b-1) */
+    /* return the smallest i in [0,fanout-1] such that sum(i) > x;
+       in this case x is always < sum(fanout-1) by assumption */
     uint64_t search(uint64_t x) const {
-        assert(x < summary[num_segments - 1] + keys[fanout - 1]);
+        assert(x < sum(fanout - 1));
         uint64_t i = 0;
 #ifdef DISABLE_AVX
         for (uint64_t z = 1; z != num_segments; ++z, ++i) {

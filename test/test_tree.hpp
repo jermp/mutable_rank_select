@@ -51,8 +51,29 @@ void test_tree(size_t n) {
         }
     };
 
+    {
+        essentials::logger("testing search queries...");
+        uint64_t max_sum = tree.sum(n - 1);
+        essentials::uniform_int_rng<uint64_t> distr(
+            0, max_sum - 1, essentials::get_random_seed());
+        for (uint32_t i = 0; i != 1000; ++i) {
+            uint64_t x = distr.gen();
+            uint64_t expected = 0;
+            for (uint64_t sum = 0; expected != n; ++expected) {
+                sum += A[expected];
+                if (sum > x) break;
+            }
+            uint64_t got = tree.search(x);
+            REQUIRE_MESSAGE(got == expected, "error during SEARCH: got search("
+                                                 << x << ") = " << got
+                                                 << " but expected "
+                                                 << expected);
+        }
+    }
+
     update(+1);
     update(-1);
+
     std::cout << "\teverything's good" << std::endl;
 }
 

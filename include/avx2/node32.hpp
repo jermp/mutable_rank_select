@@ -74,10 +74,10 @@ struct node32 {
         return summary[i / segment_size] + keys[i];
     }
 
-    /* return the smallest i in [0,b-1] such that sum(i) > x;
-       in our case x is guaranteed to always be < sum(b-1) */
+    /* return the smallest i in [0,fanout-1] such that sum(i) > x;
+       if x >= sum(fanout-1), then fanout is returned */
     uint64_t search(uint64_t x) const {
-        assert(x < summary[num_segments - 1] + keys[fanout - 1]);
+        // if (x >= sum(fanout - 1)) return fanout;
         uint64_t i = 0;
 #ifdef DISABLE_AVX
         for (uint64_t z = 1; z != num_segments; ++z, ++i) {
@@ -101,7 +101,6 @@ struct node32 {
                                _mm256_set1_epi32(x));
         i += index_fs<32>(cmp2);
 #endif
-        assert(i < fanout);
         return i;
     }
 

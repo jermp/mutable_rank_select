@@ -6,8 +6,7 @@ struct test {
     static void run() {
         const uint64_t n = sizes[i];
         const uint32_t height = Tree<1>::height(n);
-        typedef typename Tree<height>::tree_type tree_type;
-        test_tree<tree_type>(n);
+        test_tree<Tree<height>>(n);
         test<i + 1, Tree>::run();
     }
 };

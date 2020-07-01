@@ -20,8 +20,6 @@ struct segment_tree {
         return 0;
     }
 
-    typedef segment_tree<Height> tree_type;
-
     segment_tree()
         : m_size(0), m_num_nodes_per_level(nullptr), m_ptr(nullptr) {}
 
@@ -169,6 +167,13 @@ struct segment_tree {
         if constexpr (Height == 2) { UPDATE_H2 }
         if constexpr (Height == 3) { UPDATE_H3 }
         if constexpr (Height == 4) { UPDATE_H4 }
+    }
+
+    uint64_t search(uint64_t x) const {
+        if constexpr (Height == 1) { SEARCH_H1 }
+        if constexpr (Height == 2) { SEARCH_H2 }
+        if constexpr (Height == 3) { SEARCH_H3 }
+        if constexpr (Height == 4) { SEARCH_H4 }
     }
 
 private:
