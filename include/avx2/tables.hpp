@@ -8,12 +8,12 @@
 #endif
 #endif
 
-#define ALIGNEMENT ALIGNED(32)
+#define AVX2_ALIGNEMENT ALIGNED(32)
 
 namespace dyrs::avx2::tables {
 
 // used by node32
-static const int64_t update_4_64[4 * 4 * 2] ALIGNEMENT = {
+static const int64_t update_4_64[4 * 4 * 2] AVX2_ALIGNEMENT = {
 
     0, +1, +1, +1, 0, 0, +1, +1, 0,
     0, 0,  +1, 0,  0, 0, 0,
@@ -24,7 +24,7 @@ static const int64_t update_4_64[4 * 4 * 2] ALIGNEMENT = {
 };
 
 // used by node64 and node32
-static const int32_t update_8_32[(8 + 1) * 8 * 2] ALIGNEMENT = {
+static const int32_t update_8_32[(8 + 1) * 8 * 2] AVX2_ALIGNEMENT = {
 
     +1, +1, +1, +1, +1, +1, +1, +1, 0,  +1, +1, +1, +1, +1, +1, +1, 0,  0,  +1,
     +1, +1, +1, +1, +1, 0,  0,  0,  +1, +1, +1, +1, +1, 0,  0,  0,  0,  +1, +1,
@@ -39,7 +39,7 @@ static const int32_t update_8_32[(8 + 1) * 8 * 2] ALIGNEMENT = {
 };
 
 // used by node128
-static const int16_t update_8_16[8 * 8 * 2] ALIGNEMENT = {
+static const int16_t update_8_16[8 * 8 * 2] AVX2_ALIGNEMENT = {
 
     0, +1, +1, +1, +1, +1, +1, +1, 0, 0, +1, +1, +1, +1, +1, +1, 0,
     0, 0,  +1, +1, +1, +1, +1, 0,  0, 0, 0,  +1, +1, +1, +1, 0,  0,
@@ -54,7 +54,7 @@ static const int16_t update_8_16[8 * 8 * 2] ALIGNEMENT = {
 };
 
 // used by node128
-static const int16_t update_16_16[16 * 16 * 2] ALIGNEMENT = {
+static const int16_t update_16_16[16 * 16 * 2] AVX2_ALIGNEMENT = {
 
     +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, 0,  +1, +1,
     +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, +1, 0,  0,  +1, +1, +1, +1,
