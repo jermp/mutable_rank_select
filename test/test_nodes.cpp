@@ -26,12 +26,12 @@ TEST_CASE("test avx512::node512") {
     test_node<avx512::node512, max_int>();
 }
 
-TEST_CASE("test avx512::node256") {
-    static constexpr uint64_t max_int = 1ULL << 17;
-    test_node<avx512::node256, max_int>();
-}
+// TEST_CASE("test avx512::node256") {
+//     static constexpr uint64_t max_int = 1ULL << 17;
+//     test_node<avx512::node256, max_int>();
+// }
 
-TEST_CASE("test avx512::node128") {
-    static constexpr uint64_t max_int = 1ULL << 25;
-    test_node<avx512::node128, max_int>();
-}
+// TEST_CASE("test avx512::node128") {
+//     static constexpr uint64_t max_int = 1ULL << 25;
+//     test_node<avx512::node128, max_int>();
+// }
