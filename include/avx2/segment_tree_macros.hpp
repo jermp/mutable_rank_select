@@ -1,13 +1,11 @@
 #pragma once
 
-namespace dyrs::avx2 {
-
-#define SUM_H1                  \
+#define DYRS_AVX2_SUM_H1        \
     node128 node1(m_ptr);       \
     uint64_t s1 = node1.sum(i); \
     return s1;
 
-#define SUM_H2                                                      \
+#define DYRS_AVX2_SUM_H2                                            \
     uint64_t child1 = i / node128::fanout;                          \
     uint64_t child2 = i % node128::fanout;                          \
     node64 node1(m_ptr);                                            \
@@ -16,7 +14,7 @@ namespace dyrs::avx2 {
     uint64_t s2 = node2.sum(child2);                                \
     return s1 + s2;
 
-#define SUM_H3                                                             \
+#define DYRS_AVX2_SUM_H3                                                   \
     constexpr uint64_t B1 = node128::fanout * node64::fanout;              \
     uint64_t child1 = i / B1;                                              \
     uint64_t child2 = (i % B1) / node128::fanout;                          \
@@ -30,7 +28,7 @@ namespace dyrs::avx2 {
     uint64_t s3 = node3.sum(child3);                                       \
     return s1 + s2 + s3;
 
-#define SUM_H4                                                            \
+#define DYRS_AVX2_SUM_H4                                                  \
     constexpr uint64_t B1 = node128::fanout * node64::fanout;             \
     constexpr uint64_t B2 = B1 * node64::fanout;                          \
     uint64_t child1 = i / B2;                                             \
@@ -54,11 +52,11 @@ namespace dyrs::avx2 {
     uint64_t s4 = node4.sum(child4);                                      \
     return s1 + s2 + s3 + s4;
 
-#define UPDATE_H1         \
-    node128 node1(m_ptr); \
+#define DYRS_AVX2_UPDATE_H1 \
+    node128 node1(m_ptr);   \
     node1.update(i, delta);
 
-#define UPDATE_H2                                                   \
+#define DYRS_AVX2_UPDATE_H2                                         \
     uint64_t child1 = i / node128::fanout;                          \
     uint64_t child2 = i % node128::fanout;                          \
     node64 node1(m_ptr);                                            \
@@ -66,7 +64,7 @@ namespace dyrs::avx2 {
     node1.update(child1 + 1, delta);                                \
     node2.update(child2, delta);
 
-#define UPDATE_H3                                                          \
+#define DYRS_AVX2_UPDATE_H3                                                \
     constexpr uint64_t B1 = node128::fanout * node64::fanout;              \
     uint64_t child1 = i / B1;                                              \
     uint64_t child2 = (i % B1) / node128::fanout;                          \
@@ -79,7 +77,7 @@ namespace dyrs::avx2 {
     node2.update(child2 + 1, delta);                                       \
     node3.update(child3, delta);
 
-#define UPDATE_H4                                                         \
+#define DYRS_AVX2_UPDATE_H4                                               \
     constexpr uint64_t B1 = node128::fanout * node64::fanout;             \
     constexpr uint64_t B2 = B1 * node64::fanout;                          \
     uint64_t child1 = i / B2;                                             \
@@ -102,12 +100,12 @@ namespace dyrs::avx2 {
     node3.update(child3 + 1, delta);                                      \
     node4.update(child4, delta);
 
-#define SEARCH_H1                  \
+#define DYRS_AVX2_SEARCH_H1        \
     node128 node1(m_ptr);          \
     uint64_t i1 = node1.search(x); \
     return i1;
 
-#define SEARCH_H2                                               \
+#define DYRS_AVX2_SEARCH_H2                                     \
     node64 node1(m_ptr);                                        \
     uint64_t i1 = node1.search(x) - 1;                          \
     x -= node1.sum(i1);                                         \
@@ -115,7 +113,7 @@ namespace dyrs::avx2 {
     uint64_t i2 = node2.search(x);                              \
     return i1 * node128::fanout + i2;
 
-#define SEARCH_H3                                                          \
+#define DYRS_AVX2_SEARCH_H3                                                \
     node64 node1(m_ptr);                                                   \
     uint64_t i1 = node1.search(x) - 1;                                     \
     x -= node1.sum(i1);                                                    \
@@ -127,7 +125,7 @@ namespace dyrs::avx2 {
     uint64_t i3 = node3.search(x);                                         \
     return i1 * node128::fanout * node64::fanout + i2 * node128::fanout + i3;
 
-#define SEARCH_H4                                                           \
+#define DYRS_AVX2_SEARCH_H4                                                 \
     node32 node1(m_ptr);                                                    \
     uint64_t i1 = node1.search(x) - 1;                                      \
     x -= node1.sum(i1);                                                     \
@@ -148,5 +146,3 @@ namespace dyrs::avx2 {
     uint64_t i4 = node4.search(x);                                          \
     return i1 * node128::fanout * node64::fanout * node64::fanout +         \
            i2 * node128::fanout * node64::fanout + i3 * node128::fanout + i4;
-
-}  // namespace dyrs::avx2

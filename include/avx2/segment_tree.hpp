@@ -25,7 +25,7 @@ struct segment_tree {
 
     /* input is an intger array where each value is in [0,2^8] */
     void build(uint16_t const* input, uint64_t n) {
-        assert(n > 0);
+        assert(n > 0 and n <= (1ULL << 24));
         m_size = n;
         std::vector<uint32_t> num_nodes_per_level(Height);
         uint64_t m = n;
@@ -155,25 +155,25 @@ struct segment_tree {
 
     uint64_t sum(uint64_t i) const {
         assert(i < size());
-        if constexpr (Height == 1) { SUM_H1 }
-        if constexpr (Height == 2) { SUM_H2 }
-        if constexpr (Height == 3) { SUM_H3 }
-        if constexpr (Height == 4) { SUM_H4 }
+        if constexpr (Height == 1) { DYRS_AVX2_SUM_H1 }
+        if constexpr (Height == 2) { DYRS_AVX2_SUM_H2 }
+        if constexpr (Height == 3) { DYRS_AVX2_SUM_H3 }
+        if constexpr (Height == 4) { DYRS_AVX2_SUM_H4 }
     }
 
     void update(uint64_t i, int8_t delta) {
         assert(i < size());
-        if constexpr (Height == 1) { UPDATE_H1 }
-        if constexpr (Height == 2) { UPDATE_H2 }
-        if constexpr (Height == 3) { UPDATE_H3 }
-        if constexpr (Height == 4) { UPDATE_H4 }
+        if constexpr (Height == 1) { DYRS_AVX2_UPDATE_H1 }
+        if constexpr (Height == 2) { DYRS_AVX2_UPDATE_H2 }
+        if constexpr (Height == 3) { DYRS_AVX2_UPDATE_H3 }
+        if constexpr (Height == 4) { DYRS_AVX2_UPDATE_H4 }
     }
 
     uint64_t search(uint64_t x) const {
-        if constexpr (Height == 1) { SEARCH_H1 }
-        if constexpr (Height == 2) { SEARCH_H2 }
-        if constexpr (Height == 3) { SEARCH_H3 }
-        if constexpr (Height == 4) { SEARCH_H4 }
+        if constexpr (Height == 1) { DYRS_AVX2_SEARCH_H1 }
+        if constexpr (Height == 2) { DYRS_AVX2_SEARCH_H2 }
+        if constexpr (Height == 3) { DYRS_AVX2_SEARCH_H3 }
+        if constexpr (Height == 4) { DYRS_AVX2_SEARCH_H4 }
     }
 
 private:
