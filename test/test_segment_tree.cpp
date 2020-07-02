@@ -16,9 +16,9 @@ struct test<sizeof(sizes) / sizeof(sizes[0]), Tree> {
     static void run() {}
 };
 
-// TEST_CASE("test avx2::segment_tree") {
-//     test<0, avx2::segment_tree>::run();
-// }
+TEST_CASE("test avx2::segment_tree") {
+    test<0, avx2::segment_tree>::run();
+}
 
 TEST_CASE("test avx512::segment_tree") {
     test<0, avx512::segment_tree>::run();
