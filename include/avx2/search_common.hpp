@@ -12,21 +12,17 @@ inline int ctzll(unsigned long long w) {
 // find index of "first set" (fs) -- 128-bit version
 template <uint64_t word_bits>  // 8, 16, 32, 64
 inline static uint64_t index_fs(__m128i const& vec) {
-    uint64_t w0 = _mm_extract_epi64(vec, 0);
-    uint64_t w1 = _mm_extract_epi64(vec, 1);
-    uint64_t index = (ctzll(w0) + ctzll(w1)) / word_bits;
+    uint64_t const* w = reinterpret_cast<uint64_t const*>(&vec);
+    uint64_t index = (ctzll(w[0]) + ctzll(w[1])) / word_bits;
     return index;
 }
 
 // find index of "first set" (fs) -- 256-bit version
 template <uint64_t word_bits>  // 8, 16, 32, 64
 inline static uint64_t index_fs(__m256i const& vec) {
-    uint64_t w0 = _mm256_extract_epi64(vec, 0);
-    uint64_t w1 = _mm256_extract_epi64(vec, 1);
-    uint64_t w2 = _mm256_extract_epi64(vec, 2);
-    uint64_t w3 = _mm256_extract_epi64(vec, 3);
+    uint64_t const* w = reinterpret_cast<uint64_t const*>(&vec);
     uint64_t index =
-        (ctzll(w0) + ctzll(w1) + ctzll(w2) + ctzll(w3)) / word_bits;
+        (ctzll(w[0]) + ctzll(w[1]) + ctzll(w[2]) + ctzll(w[3])) / word_bits;
     return index;
 }
 
