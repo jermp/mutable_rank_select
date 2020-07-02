@@ -31,7 +31,7 @@ void test_tree(size_t n) {
     }
 
     auto update = [&](int8_t delta) {
-        essentials::logger("testing update queries...");
+        essentials::logger("testing updates...");
         static constexpr uint32_t update_queries = 5000;
         uint32_t step = n / update_queries;
         if (step == 0) step = 1;

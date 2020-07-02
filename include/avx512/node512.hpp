@@ -47,7 +47,7 @@ struct node512 {
 #ifdef AVX512
         bool sign = delta >> 7;
         __m512i s1 = _mm512_load_si512((__m512i const*)tables::update_16_32 +
-                                       j + sign * num_segments);
+                                       j + 1 + sign * (num_segments + 1));
         __m512i r1 =
             _mm512_add_epi32(_mm512_loadu_si512((__m512i const*)summary), s1);
         _mm512_storeu_si512((__m512i*)summary, r1);
@@ -77,14 +77,14 @@ struct node512 {
 #ifdef AVX512
         __mmask16 cmp1 = _mm512_cmpgt_epi32_mask(
             _mm512_loadu_si512((__m512i const*)summary), _mm512_set1_epi32(x));
-        i = __builtin_ctzll(cmp1) - 1;
+        i = cmp1 != 0 ? __builtin_ctz(cmp1) - 1 : num_segments - 1;
         assert(i < num_segments);
         x -= summary[i];
         i *= segment_size;
         __mmask32 cmp2 = _mm512_cmpgt_epi16_mask(
             _mm512_loadu_si512((__m512i const*)(keys + i)),
             _mm512_set1_epi16(x));
-        i += __builtin_ctzll(cmp2);
+        i += __builtin_ctz(cmp2);
 #else
         for (uint64_t z = 1; z != num_segments; ++z, ++i) {
             if (summary[z] > x) break;

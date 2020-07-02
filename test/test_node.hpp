@@ -20,6 +20,7 @@ void test_node() {
     Node node(out.data());
 
     {
+        essentials::logger("testing sum queries...");
         uint64_t expected = 0;
         for (uint32_t i = 0; i != Node::fanout; ++i) {
             uint64_t got = node.sum(i);
@@ -32,6 +33,7 @@ void test_node() {
     }
 
     auto update = [&](int8_t delta) {
+        essentials::logger("testing update(" + std::to_string(delta) + ")...");
         for (uint64_t run = 0; run != 100; ++run) {
             uint64_t expected = 0;
             for (uint64_t i = 0; i != Node::fanout; ++i) {
@@ -49,6 +51,7 @@ void test_node() {
     };
 
     {
+        essentials::logger("testing search queries...");
         uint64_t max_sum = node.sum(Node::fanout - 1);
         essentials::uniform_int_rng<uint_type> distr(
             0, max_sum - 1, essentials::get_random_seed());
