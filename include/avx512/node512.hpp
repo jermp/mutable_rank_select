@@ -84,6 +84,7 @@ struct node512 {
         __mmask32 cmp2 = _mm512_cmpgt_epi16_mask(
             _mm512_loadu_si512((__m512i const*)(keys + i)),
             _mm512_set1_epi16(x));
+        assert(cmp2 > 0);
         i += __builtin_ctz(cmp2);
 #else
         for (uint64_t z = 1; z != num_segments; ++z, ++i) {

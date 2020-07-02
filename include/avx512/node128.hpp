@@ -72,6 +72,7 @@ struct node128 {
     /* return the smallest i in [0,fanout-1] such that sum(i) > x;
        if x >= sum(fanout-1), then fanout is returned */
     uint64_t search(uint64_t x) const {
+        if (x >= sum(fanout - 1)) return fanout;
         uint64_t i = 0;
 #ifdef AVX512
         __mmask8 cmp1 = _mm512_cmpgt_epi64_mask(
@@ -83,6 +84,7 @@ struct node128 {
         __mmask16 cmp2 = _mm512_cmpgt_epi32_mask(
             _mm512_loadu_si512((__m512i const*)(keys + i)),
             _mm512_set1_epi32(x));
+        assert(cmp2 > 0);
         i += __builtin_ctzll(cmp2);
 #else
         for (uint64_t z = 1; z != num_segments; ++z, ++i) {
