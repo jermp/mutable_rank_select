@@ -4,7 +4,7 @@
 template <int i, template <uint32_t> typename Tree>
 struct test {
     static void run() {
-        const uint64_t n = sizes[i];
+        const uint32_t n = sizes[i];
         const uint32_t height = Tree<1>::height(n);
         test_tree<Tree<height>>(n);
         test<i + 1, Tree>::run();

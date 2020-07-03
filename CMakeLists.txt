@@ -41,7 +41,7 @@ MESSAGE(STATUS "Compiling with ${CMAKE_CXX_FLAGS}")
 
 include_directories(${DYRS_SOURCE_DIR}/include)
 
-#add_subdirectory(src)
+add_subdirectory(src)
 
 enable_testing()
 file(GLOB TEST_SOURCES test/test_*.cpp)

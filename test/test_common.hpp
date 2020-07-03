@@ -10,7 +10,7 @@
 #include "types.hpp"
 
 namespace dyrs::testing {
-static constexpr uint64_t sizes[] = {
+static constexpr uint32_t sizes[] = {
     5,       9,       13,      25,       37,       251,      316,     398,
     501,     630,     794,     1000,     1258,     1584,     1995,    2511,
     3162,    3981,    5011,    6309,     7943,     10000,    12589,   15848,

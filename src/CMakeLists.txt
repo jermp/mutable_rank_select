@@ -1,0 +1,1 @@
+add_executable(perf_prefix_sum perf_prefix_sum.cpp)
