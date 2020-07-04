@@ -4,7 +4,7 @@
 
 #include "immintrin.h"
 #include "tables.hpp"
-#include "../common.hpp"
+#include "../util.hpp"
 
 namespace dyrs::avx512 {
 

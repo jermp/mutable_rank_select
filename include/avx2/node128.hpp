@@ -5,7 +5,7 @@
 #include "immintrin.h"
 #include "tables.hpp"
 #include "search_common.hpp"
-#include "../common.hpp"
+#include "../util.hpp"
 
 namespace dyrs::avx2 {
 

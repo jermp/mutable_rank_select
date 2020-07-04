@@ -5,31 +5,12 @@
 #include "../external/cmd_line_parser/include/parser.hpp"
 
 #include "util.hpp"
+#include "rs256/algorithms.hpp"
 
 using namespace dyrs;
 
 const uint64_t NUM_ITERS = 10;
 const uint64_t NUM_QUERIES = 1'000'000;
-
-// From http://xoroshiro.di.unimi.it/splitmix64.c
-uint64_t rand_u64() {
-    static uint64_t x = 1;
-    uint64_t z = (x += uint64_t(0x9E3779B97F4A7C15));
-    z = (z ^ (z >> 30)) * uint64_t(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)) * uint64_t(0x94D049BB133111EB);
-    return z ^ (z >> 31);
-}
-
-uint64_t create_random_bits(std::vector<uint64_t>& bits, uint64_t threshold) {
-    uint64_t num_ones = 0;
-    for (uint64_t i = 0; i < bits.size() * 64; i++) {
-        if (rand_u64() < threshold) {
-            bits[i / 64] |= 1ULL << (i % 64);
-            num_ones++;
-        }
-    }
-    return num_ones;
-}
 
 template <select_modes Mode>
 int main_template(
@@ -81,7 +62,7 @@ int main(int argc, char** argv) {
     std::vector<std::pair<const uint64_t*, uint64_t>> queries(NUM_QUERIES);
     for (uint64_t i = 0; i < NUM_QUERIES;) {
         const uint64_t* x = &bits[(rand_u64() % num_buckets) * 256 / 64];
-        const uint64_t r = rank_u256<rank_modes::NOCPU>(x);
+        const uint64_t r = rank_u256<rank_modes::NOCPU>(x, 255);
         if (r != 0) { queries[i++] = {x, rand_u64() % r}; }
     }
 

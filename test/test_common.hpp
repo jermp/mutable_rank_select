@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "../external/essentials/include/essentials.hpp"
+#include "util.hpp"
+#include "rs256/algorithms.hpp"
 #include "types.hpp"
 
 namespace dyrs::testing {
