@@ -9,3 +9,5 @@
 #include "avx512/node256.hpp"
 #include "avx512/node128.hpp"
 #include "avx512/segment_tree.hpp"
+
+#include "mutable_bitvector.hpp"
