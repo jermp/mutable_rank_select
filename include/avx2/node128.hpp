@@ -41,12 +41,10 @@ struct node128 {
 
     void update(uint64_t i, int8_t delta) {
         if (i == fanout) return;
-
         assert(i < fanout);
         assert(delta == +1 or delta == -1);
         uint64_t j = i / segment_size;
         uint64_t k = i % segment_size;
-
 #ifdef DISABLE_AVX
         for (uint64_t z = j + 1; z != num_segments; ++z) summary[z] += delta;
         for (uint64_t z = k, base = j * segment_size; z != segment_size; ++z) {
@@ -54,13 +52,11 @@ struct node128 {
         }
 #else
         bool sign = delta >> 7;
-
         __m128i s1 = _mm_load_si128((__m128i const*)tables::update_8_16 + j +
                                     sign * num_segments);
         __m128i r1 =
             _mm_add_epi16(_mm_loadu_si128((__m128i const*)summary), s1);
         _mm_storeu_si128((__m128i*)summary, r1);
-
         __m256i s2 = _mm256_load_si256((__m256i const*)tables::update_16_16 +
                                        k + sign * segment_size);
         __m256i r2 = _mm256_add_epi16(
