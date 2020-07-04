@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
               << num_ones / double(num_bits) << ")" << std::endl;
 
     std::vector<std::pair<const uint64_t*, uint64_t>> queries(NUM_QUERIES);
-    for (uint64_t i = 0; i < NUM_QUERIES; i++) {
+    for (uint64_t i = 0; i < NUM_QUERIES;) {
         const uint64_t* x = &bits[(rand_u64() % num_buckets) * 256 / 64];
         const uint64_t r = rank_u256<rank_modes::NOCPU>(x);
-        queries[i] = {x, rand_u64() % r};
+        if (r != 0) { queries[i++] = {x, rand_u64() % r}; }
     }
 
     main_template<select_modes::NOCPU_SDSL>(queries);
