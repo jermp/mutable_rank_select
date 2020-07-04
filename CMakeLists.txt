@@ -16,7 +16,7 @@ endif()
 
 if (AVX512)
   MESSAGE(STATUS "SIMD AVX512 enabled")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -DAVX512")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -mavx512f -mavx512bw -mavx512vl -mavx512vpopcntdq -DAVX512")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

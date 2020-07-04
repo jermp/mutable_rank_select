@@ -1,1 +1,3 @@
 add_executable(perf_prefix_sum perf_prefix_sum.cpp)
+add_executable(perf_rank256 perf_rank256.cpp)
+add_executable(perf_select256 perf_select256.cpp)
