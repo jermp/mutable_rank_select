@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <array>
 
 #include "../external/essentials/include/essentials.hpp"
 #include "../external/cmd_line_parser/include/parser.hpp"
@@ -9,76 +10,149 @@
 
 using namespace dyrs;
 
-const uint64_t NUM_ITERS = 10;
-const uint64_t NUM_QUERIES = 1'000'000;
+static constexpr int runs = 100;
+static constexpr uint32_t num_queries = 10000;
+static constexpr uint64_t bits_seed = 13;
+static constexpr uint64_t query_seed = 71;
+
+static constexpr std::array<uint64_t, 25> sizes = {
+    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
+    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
+    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
+    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
+    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+};
 
 template <select_modes Mode>
-int main_template(
-    const std::vector<std::pair<const uint64_t*, uint64_t>>& queries) {
-    std::cout << "----- Algorithm: " << print_select_mode(Mode) << " -----"
-              << std::endl;
+void test(const double density) {
+    std::vector<uint64_t> bits(sizes.back() / 64);
+    auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
+    std::cout << "# number of ones: " << num_ones << " ("
+              << num_ones / double(sizes.back()) << ")" << std::endl;
 
-    uint64_t tmp = 0;  // to avoid the optimization
-    essentials::timer<essentials::clock_type, std::chrono::nanoseconds> t;
+    std::string json("{\"type\":\"" + print_select_mode(Mode) + "\", ");
+    json += "\"density\":\"" + std::to_string(density) + "\", ";
+    json += "\"timings\":[";
 
-    for (size_t j = 0; j < NUM_ITERS; j++) {
-        t.start();
-        for (uint64_t i = 0; i < NUM_QUERIES; i++) {
-            const uint64_t* x = queries[i].first;
-            const uint64_t k = queries[i].second;
-            tmp += select_u256<Mode>(x, k);
+    for (const uint64_t n : sizes) {
+        splitmix64 hasher(query_seed);
+
+        const auto num_buckets = n / 256;
+        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
+
+        for (uint64_t i = 0; i < num_queries;) {
+            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
+            const uint64_t r = rank_u256<rank_modes::NOCPU>(x, 255);
+            if (r != 0) { queries[i++] = {x, hasher.next() % r}; }
         }
-        t.stop();
+
+        essentials::timer_type t;
+        double min = 0.0, max = 0.0, avg = 0.0;
+
+        auto measure = [&]() {
+            uint64_t tmp = 0;  // to avoid the optimization
+            for (int run = 0; run != runs; run++) {
+                t.start();
+                for (uint64_t i = 0; i < num_queries; i++) {
+                    const uint64_t* x = queries[i].first;
+                    const uint64_t k = queries[i].second;
+                    tmp += select_u256<Mode>(x, k);
+                }
+                t.stop();
+            }
+            std::cout << "# ignore: " << tmp << std::endl;
+        };
+
+        static constexpr int K = 10;
+
+        // warm-up
+        for (int k = 0; k != K; ++k) {
+            measure();
+            double avg_ns_query = (t.average() * 1000) / num_queries;
+            avg += avg_ns_query;
+            t.reset();
+        }
+        std::cout << "# warm-up: " << avg / K << std::endl;
+        avg = 0.0;
+
+        for (int k = 0; k != K; ++k) {
+            measure();
+            t.discard_max();
+            double avg_ns_query = (t.max() * 1000) / num_queries;
+            max += avg_ns_query;
+            t.reset();
+        }
+
+        for (int k = 0; k != K; ++k) {
+            measure();
+            t.discard_min();
+            t.discard_max();
+            double avg_ns_query = (t.average() * 1000) / num_queries;
+            avg += avg_ns_query;
+            t.reset();
+        }
+
+        for (int k = 0; k != K; ++k) {
+            measure();
+            t.discard_min();
+            double avg_ns_query = (t.min() * 1000) / num_queries;
+            min += avg_ns_query;
+            t.reset();
+        }
+
+        min /= K;
+        max /= K;
+        avg /= K;
+        std::vector<double> tt{min, avg, max};
+        std::sort(tt.begin(), tt.end());
+        std::cout << "[" << tt[0] << "," << tt[1] << "," << tt[2] << "]\n";
+
+        json += "[" + std::to_string(tt[0]) + "," + std::to_string(tt[1]) +
+                "," + std::to_string(tt[2]) + "],";
     }
 
-    const double elapsed_ns = t.average();
-    std::cout << "Computation time in ns/op: " << elapsed_ns / NUM_QUERIES
-              << std::endl;
-    std::cout << "tmp: " << tmp << std::endl;
-
-    return 0;
+    json.pop_back();
+    json += "]}";
+    std::cerr << json << std::endl;
 }
 
 int main(int argc, char** argv) {
-#ifndef NDEBUG
-    std::cerr << "The code is running in debug mode." << std::endl;
-#endif
+    cmd_line_parser::parser parser(argc, argv);
+    parser.add("mode", "Mode of rank algorithm.");
+    parser.add("density", "Density of ones (in [0,1]).");
+    if (!parser.parse()) return 1;
 
-    cmd_line_parser::parser p(argc, argv);
-    p.add("num_bits", "Number of bits (log_2)");
-    p.add("density", "Density of ones");
-    if (!p.parse()) { return 1; }
+    auto mode = parser.get<std::string>("mode");
+    auto density = parser.get<double>("density");
 
-    const auto num_bits = std::max(256ULL, 1ULL << p.get<uint64_t>("num_bits"));
-    const auto density = p.get<double>("density");
-
-    std::vector<uint64_t> bits(num_bits / 64);
-    const auto num_ones = create_random_bits(bits, UINT64_MAX * density);
-    const auto num_buckets = num_bits / 256;
-
-    std::cout << "Number of ones: " << num_ones << " ("
-              << num_ones / double(num_bits) << ")" << std::endl;
-
-    std::vector<std::pair<const uint64_t*, uint64_t>> queries(NUM_QUERIES);
-    for (uint64_t i = 0; i < NUM_QUERIES;) {
-        const uint64_t* x = &bits[(rand_u64() % num_buckets) * 256 / 64];
-        const uint64_t r = rank_u256<rank_modes::NOCPU>(x, 255);
-        if (r != 0) { queries[i++] = {x, rand_u64() % r}; }
+    if (mode == "nocpu_sdsl") {
+        test<select_modes::NOCPU_SDSL>(density);
+    } else if (mode == "nocpu_broadword") {
+        test<select_modes::NOCPU_BROADWORD>(density);
     }
-
-    main_template<select_modes::NOCPU_SDSL>(queries);
-    main_template<select_modes::NOCPU_BROADWORD>(queries);
 #ifdef __SSE4_2__
-    main_template<select_modes::BMI1_TZCNT_SDSL>(queries);
-    main_template<select_modes::SSE4_2_POPCNT_BROADWORD>(queries);
+    else if (mode == "bmi1_sdsl") {
+        test<select_modes::BMI1_TZCNT_SDSL>(density);
+    } else if (mode == "sse4.2_broadword") {
+        test<select_modes::SSE4_2_POPCNT_BROADWORD>(density);
+    }
 #endif
 #ifdef __BMI2__
-    main_template<select_modes::BMI2_PDEP_TZCNT>(queries);
+    else if (mode == "bmi2") {
+        test<select_modes::BMI2_PDEP_TZCNT>(density);
+    }
 #endif
 #ifdef __AVX512VPOPCNTDQ__
-    main_template<select_modes::AVX512_POPCNT>(queries);
-    main_template<select_modes::AVX512_POPCNT_EX>(queries);
+    else if (mode == "avx512") {
+        test<select_modes::AVX512_POPCNT>(density);
+    } else if (mode == "avx512_ex") {
+        test<select_modes::AVX512_POPCNT_EX>(density);
+    }
 #endif
+    else {
+        std::cout << "unknown mode \"" << mode << "\"" << std::endl;
+        return 1;
+    }
 
     return 0;
 }

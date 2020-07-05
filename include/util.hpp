@@ -25,22 +25,46 @@ void build_node_prefix_sums(KeyType const* input, uint8_t* out,
 }
 
 // From http://xoroshiro.di.unimi.it/splitmix64.c
-uint64_t rand_u64() {
-    static uint64_t x = 1;
-    uint64_t z = (x += uint64_t(0x9E3779B97F4A7C15));
-    z = (z ^ (z >> 30)) * uint64_t(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)) * uint64_t(0x94D049BB133111EB);
-    return z ^ (z >> 31);
-}
+class splitmix64 {
+public:
+    splitmix64(uint64_t seed) : x(seed){};
 
-uint64_t create_random_bits(std::vector<uint64_t>& bits, uint64_t threshold) {
+    uint64_t next() {
+        uint64_t z = (x += uint64_t(0x9E3779B97F4A7C15));
+        z = (z ^ (z >> 30)) * uint64_t(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)) * uint64_t(0x94D049BB133111EB);
+        return z ^ (z >> 31);
+    }
+
+private:
+    uint64_t x;
+};
+
+uint64_t create_random_bits(std::vector<uint64_t>& bits, uint64_t threshold,
+                            uint64_t seed = 13) {
     uint64_t num_ones = 0;
+    splitmix64 hasher(seed);
     for (uint64_t i = 0; i < bits.size() * 64; i++) {
-        if (rand_u64() < threshold) {
+        if (hasher.next() < threshold) {
             bits[i / 64] |= 1ULL << (i % 64);
             num_ones++;
         }
     }
+
+    // If the first 256 bucket does not contain one, we cannot create queries
+    // for Select256. Then, we set the first bit to one.
+    bool allzero = true;
+    for (size_t i = 0; i < 4; i++) {
+        if (bits[i] != 0) {
+            allzero = false;
+            break;
+        }
+    }
+    if (allzero) {
+        bits[0] = 1ULL;
+        num_ones++;
+    }
+
     return num_ones;
 }
 
