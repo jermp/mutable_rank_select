@@ -20,3 +20,11 @@ TEST_CASE("test SSE4_2_POPCNT_BROADWORD") {
 TEST_CASE("test BMI2_PDEP_TZCNT") {
     test_select<select_modes::BMI2_PDEP_TZCNT>();
 }
+
+TEST_CASE("test AVX2_POPCNT") {
+    test_select<select_modes::AVX2_POPCNT>();
+}
+
+TEST_CASE("test AVX2_POPCNT_EX") {
+    test_select<select_modes::AVX2_POPCNT_EX>();
+}

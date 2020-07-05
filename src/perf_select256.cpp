@@ -142,6 +142,13 @@ int main(int argc, char** argv) {
         test<select_modes::BMI2_PDEP_TZCNT>(density);
     }
 #endif
+#ifdef __AVX2__
+    else if (mode == "avx2") {
+        test<select_modes::AVX2_POPCNT>(density);
+    } else if (mode == "avx2_ex") {
+        test<select_modes::AVX2_POPCNT_EX>(density);
+    }
+#endif
 #ifdef __AVX512VPOPCNTDQ__
     else if (mode == "avx512") {
         test<select_modes::AVX512_POPCNT>(density);
