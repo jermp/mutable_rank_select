@@ -305,8 +305,8 @@ template <rank_modes Mode>
 inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
     assert(i < 256);
     uint64_t block = i / 64;
-    uint64_t offset = i & 63;
-    uint64_t mask = (1ULL << (offset + 1)) - 1;
+    uint64_t offset = (i + 1) & 63;
+    uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     uint64_t rank_in_block = rank_u64<Mode>(x[block] & mask);
     uint64_t sum = 0;
     if (block) {
@@ -327,9 +327,8 @@ inline uint64_t rank_u256<rank_modes::AVX512_POPCNT>(const uint64_t* x,
                                                      uint64_t i) {
     assert(i < 256);
     uint64_t block = i / 64;
-    uint64_t offset = i & 63;
-    uint64_t mask = (1ULL << (offset + 1)) - 1;
-
+    uint64_t offset = (i + 1) & 63;
+    uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     if (block == 0) {
         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
     } else if (block == 1) {
