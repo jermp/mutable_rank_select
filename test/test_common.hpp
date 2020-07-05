@@ -22,7 +22,13 @@ static constexpr uint32_t sizes[] = {
     5011872, 6309573, 7943282, 10000000, 12589254, 15848931,
     16777216  // max value
 };
-}
+static constexpr uint32_t logs2[] = {
+    8,  9,  10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20
+    // , 21, 22, 23, 24, 25,
+    // 26, 27, 28, 29, 30, 31, 32
+};
+}  // namespace dyrs::testing
 
 using namespace dyrs;
 using namespace dyrs::testing;

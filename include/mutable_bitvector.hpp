@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-
 #include "rs256/algorithms.hpp"
 
 namespace dyrs {
@@ -39,24 +38,28 @@ struct mutable_bitvector {
         return m_bits.size() * sizeof(m_bits.front()) * 8;
     }
 
-    bool operator[](uint64_t i) const {
+    auto const& bits() const {
+        return m_bits;
+    }
+
+    inline bool at(uint64_t i) const {
         assert(i < size());
-        uint64_t w = m_bits[i / 64];
-        w >>= i & 63;
-        return w & 1;
-        // uint64_t r;
         // uint64_t w = m_bits[i / 64];
-        // __asm volatile(
-        //     "bt %2,%1\n"
-        //     "sbb %0,%0"
-        //     : "=r"(r)
-        //     : "r"(w), "r"(i));
-        // return r;
+        // w >>= (i & 63);
+        // return w & 1;
+        uint64_t r;
+        uint64_t w = m_bits[i / 64];
+        __asm volatile(
+            "bt %2,%1\n"
+            "sbb %0,%0"
+            : "=r"(r)
+            : "r"(w), "r"(i));
+        return r;
     }
 
     void flip(uint64_t i) {
         assert(i < size());
-        bool bit = this->operator[](i);
+        bool bit = at(i);
         uint64_t word = i / 64;
         uint64_t offset = i & 63;
         uint64_t block = i / 256;

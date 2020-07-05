@@ -1,7 +1,5 @@
 #pragma once
 
-#include <bitset>
-
 namespace dyrs::testing {
 
 template <typename Vector>
@@ -10,13 +8,17 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
     std::cout << "== testing " << Vector::name() << " with " << num_bits
               << " bits ==" << std::endl;
 
-    std::vector<uint64_t> bits((num_bits + 63) / 64);
-    uint64_t num_ones = create_random_bits(bits, UINT64_MAX * density);
-
     Vector vec;
-    vec.build(bits.data(), bits.size());
+    uint64_t num_ones = 0;
+    {
+        std::vector<uint64_t> bits((num_bits + 63) / 64);
+        num_ones = create_random_bits(bits, UINT64_MAX * density);
+        vec.build(bits.data(), bits.size());
+    }
 
-    {  // rank
+    auto rank = [&]() {
+        essentials::logger("testing rank queries...");
+        auto const& bits = vec.bits();
         uint64_t bits_in_word = 64;
         uint64_t word_index = 0;
         uint64_t word = bits[word_index];
@@ -39,9 +41,11 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
                             "error got rank(" << i << ") = " << got
                                               << " but expected " << expected);
         }
-    }
+    };
 
-    {  // select
+    auto select = [&]() {
+        essentials::logger("testing select queries...");
+        auto const& bits = vec.bits();
         uint64_t bits_in_word = 64;
         uint64_t word_index = 0;
         uint64_t word = bits[word_index];
@@ -66,7 +70,23 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
                                                  << " but expected "
                                                  << expected);
         }
+    };
+
+    rank();
+    select();
+
+    static constexpr uint64_t num_flips = 5000;
+    essentials::uniform_int_rng<uint64_t> distr(0, vec.size() - 1,
+                                                essentials::get_random_seed());
+    essentials::logger("flipping some bits...");
+    for (uint64_t i = 0; i != num_flips; ++i) {
+        uint64_t pos = distr.gen();
+        vec.flip(pos);
     }
+    rank();
+    select();
+
+    std::cout << "\teverything's good" << std::endl;
 }
 
 }  // namespace dyrs::testing
