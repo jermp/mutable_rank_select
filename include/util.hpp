@@ -51,8 +51,9 @@ uint64_t create_random_bits(std::vector<uint64_t>& bits, uint64_t threshold,
         }
     }
 
-    // If the first 256 bucket does not contain one, we cannot create queries
-    // for Select256. Then, we set the first bit to one.
+    // If we do not have at least one bit set in the first 256 bits,
+    // we cannot create queries for Select256.
+    // Therefore, we always set the first bit to 1.
     bool allzero = true;
     for (size_t i = 0; i < 4; i++) {
         if (bits[i] != 0) {
