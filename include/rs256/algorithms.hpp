@@ -591,17 +591,21 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
                                                        uint64_t k) {
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
-    const __m256i mx = popcount_m256i(*reinterpret_cast<const __m256i*>(x));
-    const int64_t* cnts = reinterpret_cast<const int64_t*>(&mx);
+    const __m256i mx =
+        popcount_m256i(_mm256_set_epi64x(x[3], x[2], x[1], x[0]));
+    const uint64_t cnts[4] = {
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 0)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 1)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 2)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 3))};
 
-    uint64_t i = 0, cnt = 0;
+    uint64_t i = 0;
     while (i < 4) {
-        cnt = static_cast<uint64_t>(cnts[i]);
-        if (k < cnt) { break; }
-        k -= cnt;
+        if (k < cnts[i]) { break; }
+        k -= cnts[i];
         i++;
     }
-    if (cnt <= k) { return UINT64_MAX; }
+    if (cnts[i] <= k) { return UINT64_MAX; }
     return i * 64 + select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
 }
 template <>
@@ -609,7 +613,8 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_EX>(const uint64_t* x,
                                                           uint64_t k) {
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
-    const __m256i mx = popcount_m256i(*reinterpret_cast<const __m256i*>(x));
+    const __m256i mx =
+        popcount_m256i(_mm256_set_epi64x(x[3], x[2], x[1], x[0]));
     const __m256i mc = prefixsum_epi64(mx);
 
     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
@@ -619,7 +624,11 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_EX>(const uint64_t* x,
     if (i == 0) {
         return select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
     } else if (i < 4) {
-        const uint64_t* sums = reinterpret_cast<const uint64_t*>(&mc);
+        const uint64_t sums[4] = {
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 0)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 1)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 2)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 3))};
         return i * 64 +
                select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i - 1]);
     } else {
@@ -634,8 +643,12 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
-        _mm256_popcnt_epi64(*reinterpret_cast<const __m256i*>(x));
-    const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
+        _mm256_popcnt_epi64(_mm256_set_epi64x(x[3], x[2], x[1], x[0]));
+    const uint64_t cnts[4] = {
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 0)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 1)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 2)),
+        static_cast<uint64_t>(_mm256_extract_epi64(mx, 3))};
 
     uint64_t i = 0;
     while (i < 4) {
@@ -652,7 +665,7 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT_EX>(const uint64_t* x,
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
-        _mm256_popcnt_epi64(*reinterpret_cast<const __m256i*>(x));
+        _mm256_popcnt_epi64(_mm256_set_epi64x(x[3], x[2], x[1], x[0]));
     const __m256i mc = prefixsum_epi64(mx);
 
     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
@@ -662,7 +675,11 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT_EX>(const uint64_t* x,
     if (i == 0) {
         return select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
     } else if (i < 4) {
-        const uint64_t* sums = reinterpret_cast<const uint64_t*>(&mc);
+        const uint64_t sums[4] = {
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 0)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 1)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 2)),
+            static_cast<uint64_t>(_mm256_extract_epi64(mc, 3))};
         return i * 64 +
                select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i - 1]);
     } else {
