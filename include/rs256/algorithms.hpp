@@ -592,15 +592,16 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx = popcount_m256i(*reinterpret_cast<const __m256i*>(x));
-    const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
+    const int64_t* cnts = reinterpret_cast<const int64_t*>(&mx);
 
-    uint64_t i = 0;
+    uint64_t i = 0, cnt = 0;
     while (i < 4) {
-        if (k < cnts[i]) { break; }
-        k -= cnts[i];
+        cnt = static_cast<uint64_t>(cnts[i]);
+        if (k < cnt) { break; }
+        k -= cnt;
         i++;
     }
-    if (cnts[i] <= k) { return UINT64_MAX; }
+    if (cnt <= k) { return UINT64_MAX; }
     return i * 64 + select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
 }
 template <>
