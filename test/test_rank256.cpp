@@ -8,3 +8,7 @@ TEST_CASE("test NOCPU") {
 TEST_CASE("test SSE4_2_POPCNT") {
     test_rank<rank_modes::SSE4_2_POPCNT>();
 }
+
+TEST_CASE("test AVX2_POPCNT") {
+    test_rank<rank_modes::AVX2_POPCNT>();
+}

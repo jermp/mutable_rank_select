@@ -262,6 +262,9 @@ enum class rank_modes {
 #ifdef __SSE4_2__
     SSE4_2_POPCNT,
 #endif
+#ifdef __AVX2__
+    AVX2_POPCNT,
+#endif
 #ifdef __AVX512VPOPCNTDQ__
     AVX512_POPCNT,
 #endif
@@ -271,6 +274,9 @@ static const std::map<rank_modes, std::string> rank_mode_map = {
     {rank_modes::NOCPU, "NOCPU"},  //
 #ifdef __SSE4_2__
     {rank_modes::SSE4_2_POPCNT, "SSE4_2_POPCNT"},  //
+#endif
+#ifdef __AVX2__
+    {rank_modes::AVX2_POPCNT, "AVX2_POPCNT"},  //
 #endif
 #ifdef __AVX512VPOPCNTDQ__
     {rank_modes::AVX512_POPCNT, "AVX512_POPCNT"},  //
@@ -300,6 +306,20 @@ inline uint64_t rank_u64<rank_modes::SSE4_2_POPCNT>(uint64_t x) {
     return static_cast<uint64_t>(_mm_popcnt_u64(x));
 }
 #endif
+#ifdef __AVX2__
+// https://github.com/WojciechMula/sse-popcount/blob/master/popcnt-avx2-harley-seal.cpp
+__m256i popcount_m256i(const __m256i v) {
+    const __m256i m1 = _mm256_set1_epi8(0x55);
+    const __m256i m2 = _mm256_set1_epi8(0x33);
+    const __m256i m4 = _mm256_set1_epi8(0x0F);
+
+    const __m256i t1 = _mm256_sub_epi8(v, (_mm256_srli_epi16(v, 1) & m1));
+    const __m256i t2 =
+        _mm256_add_epi8(t1 & m2, (_mm256_srli_epi16(t1, 2) & m2));
+    const __m256i t3 = _mm256_add_epi8(t2, _mm256_srli_epi16(t2, 4)) & m4;
+    return _mm256_sad_epu8(t3, _mm256_setzero_si256());
+}
+#endif
 
 template <rank_modes Mode>
 inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
@@ -313,14 +333,34 @@ inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
         for (uint64_t b = 0; b <= block - 1; ++b) sum += rank_u64<Mode>(x[b]);
     }
     return sum + rank_in_block;
-    // #ifdef __SSE__
-    //     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
-    // #endif
-    //     return rank_u64<Mode>(x[0]) + rank_u64<Mode>(x[1]) +
-    //     rank_u64<Mode>(x[2]) +
-    //            rank_u64<Mode>(x[3]);
 }
-
+#ifdef __AVX2__
+template <>
+inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
+                                                   uint64_t i) {
+    assert(i < 256);
+    uint64_t block = i / 64;
+    uint64_t offset = (i + 1) & 63;
+    uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    if (block == 0) {
+        return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
+    } else if (block == 1) {
+        const __m256i mx = popcount_m256i(0, 0, x[1] & mask, x[0]);
+        return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
+                                     _mm256_extract_epi64(mx, 1));
+    } else if (block == 2) {
+        const __m256i mx = popcount_m256i(0, x[2] & mask, x[1], x[0]);
+        return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
+                                     _mm256_extract_epi64(mx, 1) +
+                                     _mm256_extract_epi64(mx, 2));
+    } else {
+        const __m256i mx = popcount_m256i(x[3] & mask, x[2], x[1], x[0]);
+        return static_cast<uint64_t>(
+            _mm256_extract_epi64(mx, 0) + _mm256_extract_epi64(mx, 1) +
+            _mm256_extract_epi64(mx, 2) + _mm256_extract_epi64(mx, 3));
+    }
+}
+#endif
 #ifdef __AVX512VPOPCNTDQ__
 template <>
 inline uint64_t rank_u256<rank_modes::AVX512_POPCNT>(const uint64_t* x,
@@ -333,24 +373,19 @@ inline uint64_t rank_u256<rank_modes::AVX512_POPCNT>(const uint64_t* x,
         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
     } else if (block == 1) {
         const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
-        const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
-        return cnts[0] + cnts[1];
+        return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
+                                     _mm256_extract_epi64(mx, 1));
     } else if (block == 2) {
         const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
-        const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
-        return cnts[0] + cnts[1] + cnts[2];
+        return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
+                                     _mm256_extract_epi64(mx, 1) +
+                                     _mm256_extract_epi64(mx, 2));
     } else {
         const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
-        const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
-        return cnts[0] + cnts[1] + cnts[2] + cnts[3];
+        return static_cast<uint64_t>(
+            _mm256_extract_epi64(mx, 0) + _mm256_extract_epi64(mx, 1) +
+            _mm256_extract_epi64(mx, 2) + _mm256_extract_epi64(mx, 3));
     }
-    // #ifdef __SSE__
-    //     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
-    // #endif
-    //     const __m256i mx =
-    //         _mm256_popcnt_epi64(*reinterpret_cast<const __m256i*>(x));
-    //     const uint64_t* cnts = reinterpret_cast<const uint64_t*>(&mx);
-    //     return cnts[0] + cnts[1] + cnts[2] + cnts[3];
 }
 #endif
 

@@ -132,6 +132,11 @@ int main(int argc, char** argv) {
         test<rank_modes::SSE4_2_POPCNT>(density);
     }
 #endif
+#ifdef __AVX2__
+    else if (mode == "avx2") {
+        test<rank_modes::AVX2_POPCNT>(density);
+    }
+#endif
 #ifdef __AVX512VPOPCNTDQ__
     else if (mode == "avx512") {
         test<rank_modes::AVX512_POPCNT>(density);
