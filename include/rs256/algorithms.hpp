@@ -345,16 +345,19 @@ inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
     if (block == 0) {
         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
     } else if (block == 1) {
-        const __m256i mx = popcount_m256i(0, 0, x[1] & mask, x[0]);
+        const __m256i mx =
+            popcount_m256i(_mm256_set_epi64x(0, 0, x[1] & mask, x[0]));
         return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
                                      _mm256_extract_epi64(mx, 1));
     } else if (block == 2) {
-        const __m256i mx = popcount_m256i(0, x[2] & mask, x[1], x[0]);
+        const __m256i mx =
+            popcount_m256i(_mm256_set_epi64x(0, x[2] & mask, x[1], x[0]));
         return static_cast<uint64_t>(_mm256_extract_epi64(mx, 0) +
                                      _mm256_extract_epi64(mx, 1) +
                                      _mm256_extract_epi64(mx, 2));
     } else {
-        const __m256i mx = popcount_m256i(x[3] & mask, x[2], x[1], x[0]);
+        const __m256i mx =
+            popcount_m256i(_mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]));
         return static_cast<uint64_t>(
             _mm256_extract_epi64(mx, 0) + _mm256_extract_epi64(mx, 1) +
             _mm256_extract_epi64(mx, 2) + _mm256_extract_epi64(mx, 3));
