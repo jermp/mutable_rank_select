@@ -133,31 +133,34 @@ int main(int argc, char** argv) {
 #ifdef __SSE4_2__
     else if (mode == "bmi1_sdsl") {
         test<select_modes::BMI1_TZCNT_SDSL>(density);
-    } else if (mode == "sse4.2_broadword") {
+    } else if (mode == "sse4_2_broadword") {
         test<select_modes::SSE4_2_POPCNT_BROADWORD>(density);
     }
 #endif
 #ifdef __BMI2__
-    else if (mode == "bmi2") {
+    else if (mode == "bmi2_pt") {
         test<select_modes::BMI2_PDEP_TZCNT>(density);
     }
 #endif
+#ifdef __AVX512VL__
+    else if (mode == "bmi2_pt_avx512_ps") {
+        test<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(density);
+    }
+#endif
 #ifdef __AVX2__
-    else if (mode == "avx2") {
+    else if (mode == "avx2_pc") {
         test<select_modes::AVX2_POPCNT>(density);
     }
 #endif
 #ifdef __AVX512VL__
-    else if (mode == "avx2_ex") {
+    else if (mode == "avx2_pc_avx512_ps") {
         test<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(density);
-    } else if (mode == "sse4.2_ex") {
-        test<select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM>(density);
     }
 #endif
 #ifdef __AVX512VPOPCNTDQ__
-    else if (mode == "avx512") {
+    else if (mode == "avx512_pc") {
         test<select_modes::AVX512_POPCNT>(density);
-    } else if (mode == "avx512_ex") {
+    } else if (mode == "avx512_pc_avx512_ps") {
         test<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(density);
     }
 #endif

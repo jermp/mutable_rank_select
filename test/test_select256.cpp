@@ -26,10 +26,10 @@ TEST_CASE("test AVX2_POPCNT") {
 }
 
 #ifdef __AVX512VL__
+TEST_CASE("test BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM") {
+    test_select<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>();
+}
 TEST_CASE("test AVX2_POPCNT_AVX512_PREFIX_SUM") {
     test_select<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>();
-}
-TEST_CASE("test SSE4_2_POPCNT_AVX512_PREFIX_SUM") {
-    test_select<select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM>();
 }
 #endif

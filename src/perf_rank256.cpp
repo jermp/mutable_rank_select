@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
         test<rank_modes::NOCPU>(density);
     }
 #ifdef __SSE4_2__
-    else if (mode == "sse4.2") {
+    else if (mode == "sse4_2") {
         test<rank_modes::SSE4_2_POPCNT>(density);
     }
 #endif
