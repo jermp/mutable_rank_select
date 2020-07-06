@@ -77,11 +77,10 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
     select();
 
     static constexpr uint64_t num_flips = 5000;
-    essentials::uniform_int_rng<uint64_t> distr(0, vec.size() - 1,
-                                                essentials::get_random_seed());
+    splitmix64 distr(essentials::get_random_seed());
     essentials::logger("flipping some bits...");
     for (uint64_t i = 0; i != num_flips; ++i) {
-        uint64_t pos = distr.gen();
+        uint64_t pos = distr.next() % vec.size();
         vec.flip(pos);
     }
     rank();

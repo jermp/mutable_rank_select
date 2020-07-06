@@ -45,10 +45,9 @@ template <rank_modes Mode>
 void test_rank() {
     std::cout << "----- Algorithm: " << print_rank_mode(Mode) << " -----"
               << std::endl;
-    essentials::uniform_int_rng<uint64_t> distr(0, -1,
-                                                essentials::get_random_seed());
-    std::vector<uint64_t> bits{distr.gen(), distr.gen(), distr.gen(),
-                               distr.gen()};
+    splitmix64 distr(essentials::get_random_seed());
+    std::vector<uint64_t> bits{distr.next(), distr.next(), distr.next(),
+                               distr.next()};
     for (uint32_t i = 0; i != 256; ++i) {
         uint64_t got = rank_u256<Mode>(bits.data(), i);
         uint64_t expected = naive_rank_u256(bits.data(), i);
@@ -63,10 +62,9 @@ template <select_modes Mode>
 void test_select() {
     std::cout << "----- Algorithm: " << print_select_mode(Mode) << " -----"
               << std::endl;
-    essentials::uniform_int_rng<uint64_t> distr(0, -1,
-                                                essentials::get_random_seed());
-    std::vector<uint64_t> bits{distr.gen(), distr.gen(), distr.gen(),
-                               distr.gen()};
+    splitmix64 distr(essentials::get_random_seed());
+    std::vector<uint64_t> bits{distr.next(), distr.next(), distr.next(),
+                               distr.next()};
     uint64_t total_ones = naive_rank_u256(bits.data(), 255);
     for (uint32_t i = 0; i != total_ones; ++i) {
         uint64_t got = select_u256<Mode>(bits.data(), i);
