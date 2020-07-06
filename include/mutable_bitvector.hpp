@@ -44,9 +44,6 @@ struct mutable_bitvector {
 
     inline bool at(uint64_t i) const {
         assert(i < size());
-        // uint64_t w = m_bits[i / 64];
-        // w >>= (i & 63);
-        // return w & 1;
         uint64_t r;
         uint64_t w = m_bits[i / 64];
         __asm volatile(
@@ -64,25 +61,16 @@ struct mutable_bitvector {
         uint64_t offset = i & 63;
         uint64_t block = i / 256;
         m_bits[word] ^= 1ULL << offset;
-        // faster with lookup or if?
         static constexpr int8_t deltas[2] = {+1, -1};
         m_index.update(block, deltas[bit]);
-        // uint64_t word = i / 64;
-        // uint64_t old = m_bits[word];
-        // uint64_t offset = i & 63;
-        // uint64_t block = i / 256;
-        // m_bits[word] ^= 1ULL << offset;
-        // static constexpr int8_t deltas[2] = {+1, -1};
-        // m_index.update(block, deltas[m_bits[word] < old]);
     }
 
     uint64_t rank(uint64_t i) const {
         assert(i < size());
         uint64_t block = i / 256;
         uint64_t offset = i & 255;
-        uint64_t rank = rank_u256<RankMode>(&m_bits[4 * block], offset);
-        if (block) rank += m_index.sum(block - 1);
-        return rank;
+        return rank_u256<RankMode>(&m_bits[4 * block], offset) +
+               (block ? m_index.sum(block - 1) : 0);
     }
 
     uint64_t select(uint64_t i) const {
