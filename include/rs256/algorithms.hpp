@@ -638,7 +638,7 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
 
-    const uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
     return i * 64 +
@@ -682,7 +682,7 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
 
-    const uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
     return i * 64 +
