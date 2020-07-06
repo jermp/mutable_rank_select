@@ -29,4 +29,7 @@ TEST_CASE("test AVX2_POPCNT") {
 TEST_CASE("test AVX2_POPCNT_AVX512_PREFIX_SUM") {
     test_select<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>();
 }
+TEST_CASE("test SSE4_2_POPCNT_AVX512_PREFIX_SUM") {
+    test_select<select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM>();
+}
 #endif

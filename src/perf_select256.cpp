@@ -150,6 +150,8 @@ int main(int argc, char** argv) {
 #ifdef __AVX512VL__
     else if (mode == "avx2_ex") {
         test<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(density);
+    } else if (mode == "sse4.2_ex") {
+        test<select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM>(density);
     }
 #endif
 #ifdef __AVX512VPOPCNTDQ__

@@ -412,6 +412,7 @@ enum class select_modes {
 #endif
 #ifdef __AVX512VL__
     AVX2_POPCNT_AVX512_PREFIX_SUM,
+    SSE4_2_POPCNT_AVX512_PREFIX_SUM,
 #endif
 #ifdef __AVX512VPOPCNTDQ__
     AVX512_POPCNT,
@@ -435,6 +436,8 @@ static const std::map<select_modes, std::string> select_mode_map = {
 #ifdef __AVX512VL__
     {select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM,
      "AVX2_POPCNT_AVX512_PREFIX_SUM"},  //
+    {select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM,
+     "SSE4_2_POPCNT_AVX512_PREFIX_SUM"},  //
 #endif
 #ifdef __AVX512VPOPCNTDQ__
     {select_modes::AVX512_POPCNT, "AVX512_POPCNT"},  //
@@ -633,6 +636,31 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(
 
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
     const __m256i msums = prefixsum_epi64(popcount_m256i(mx));
+
+    const __m256i mk = _mm256_set_epi64x(k, k, k, k);
+    const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
+    const uint8_t i = lt_cnt[mask];
+
+    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
+
+    return i * 64 +
+           select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
+}
+template <>
+inline uint64_t select_u256<select_modes::SSE4_2_POPCNT_AVX512_PREFIX_SUM>(
+    const uint64_t* x, uint64_t k) {
+    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
+    _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
+
+    uint64_t cnts[4] = {rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]),
+                        rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]),
+                        rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]),
+                        rank_u64<rank_modes::SSE4_2_POPCNT>(x[3])};
+
+    const __m256i mcnts =
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(cnts));
+    const __m256i msums = prefixsum_epi64(mcnts);
 
     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
