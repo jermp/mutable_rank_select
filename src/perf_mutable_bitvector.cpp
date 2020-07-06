@@ -195,8 +195,9 @@ int main(int argc, char** argv) {
     if (type == "avx2") {
         perf_test<avx2::segment_tree, rank_select_modes_1>(operation, density,
                                                            name, i);
-        // } else if (type == "avx512") {
-        //     perf_test<avx512::segment_tree>(operation, name, i);
+    } else if (type == "avx512") {
+        perf_test<avx512::segment_tree, rank_select_modes_1>(operation, density,
+                                                             name, i);
     } else {
         std::cout << "unknown type \"" << type << "\"" << std::endl;
         return 1;
