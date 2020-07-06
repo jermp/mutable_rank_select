@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <random>
 #include <fstream>
 
@@ -31,10 +32,6 @@ struct test {
             mutable_bitvector<PrefixSums<height>, RankSelect::rank_mode,
                               RankSelect::select_mode>
                 vec;
-
-            std::cout << "### num_bits = " << n << "; height = " << height
-                      << "; " << vec.name() << "\n";
-
             uint64_t num_ones = 0;
             {
                 std::vector<uint64_t> bits((n + 63) / 64);
@@ -43,7 +40,12 @@ struct test {
                 vec.build(bits.data(), bits.size());
             }
 
-            std::cout << "num_ones " << num_ones << "/" << n << std::endl;
+            double extra_space =
+                ((vec.bytes() * 8.0 - vec.size()) * 100.0) / vec.size();
+            std::cout << "### num_bits = " << n << "; extra_space "
+                      << std::setprecision(3) << extra_space << "%"
+                      << "; bits consumed per input bit "
+                      << (vec.bytes() * 8.0) / vec.size() << std::endl;
 
             splitmix64 hasher(query_seed);
             uint64_t M = n;  // for rank and flip
@@ -157,6 +159,7 @@ void perf_test(std::string const& operation, double density,
     if (name != "") str = name;
     std::string json("{\"type\":\"" + str + "\", ");
     if (i != -1) json += "\"num_bits\":\"" + std::to_string(sizes[i]) + "\", ";
+    json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
     test<0, PrefixSums, RankSelect>::run(queries, json, operation, density, i);
     json.pop_back();

@@ -141,6 +141,11 @@ struct segment_tree {
         return "avx512::segment_tree";
     }
 
+    uint64_t bytes() const {
+        return sizeof(m_size) + sizeof(m_num_nodes_per_level) + sizeof(m_ptr) +
+               essentials::vec_bytes(m_data);
+    }
+
     uint32_t size() const {
         return m_size;
     }

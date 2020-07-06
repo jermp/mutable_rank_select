@@ -38,6 +38,10 @@ struct mutable_bitvector {
         return m_bits.size() * sizeof(m_bits.front()) * 8;
     }
 
+    uint64_t bytes() const {
+        return m_index.bytes() + size() / 8;
+    }
+
     auto const& bits() const {
         return m_bits;
     }
