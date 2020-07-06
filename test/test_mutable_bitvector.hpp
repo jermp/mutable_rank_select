@@ -12,7 +12,8 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
     uint64_t num_ones = 0;
     {
         std::vector<uint64_t> bits((num_bits + 63) / 64);
-        num_ones = create_random_bits(bits, UINT64_MAX * density);
+        num_ones = create_random_bits(bits, UINT64_MAX * density,
+                                      essentials::get_random_seed());
         vec.build(bits.data(), bits.size());
     }
 

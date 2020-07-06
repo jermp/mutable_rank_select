@@ -25,6 +25,8 @@ TEST_CASE("test AVX2_POPCNT") {
     test_select<select_modes::AVX2_POPCNT>();
 }
 
-TEST_CASE("test AVX2_POPCNT_EX") {
-    test_select<select_modes::AVX2_POPCNT_EX>();
+#ifdef __AVX512VL__
+TEST_CASE("test AVX2_POPCNT_AVX512_PREFIX_SUM") {
+    test_select<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>();
 }
+#endif

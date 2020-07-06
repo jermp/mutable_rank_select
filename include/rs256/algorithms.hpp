@@ -312,7 +312,6 @@ __m256i popcount_m256i(const __m256i v) {
     static const __m256i m1 = _mm256_set1_epi8(0x55);
     static const __m256i m2 = _mm256_set1_epi8(0x33);
     static const __m256i m4 = _mm256_set1_epi8(0x0F);
-
     const __m256i t1 = _mm256_sub_epi8(v, (_mm256_srli_epi16(v, 1) & m1));
     const __m256i t2 =
         _mm256_add_epi8(t1 & m2, (_mm256_srli_epi16(t1, 2) & m2));
@@ -405,7 +404,9 @@ enum class select_modes {
 #endif
 #ifdef __AVX2__
     AVX2_POPCNT,
-    AVX2_POPCNT_EX,
+#endif
+#ifdef __AVX512VL__
+    AVX2_POPCNT_AVX512_PREFIX_SUM,
 #endif
 #ifdef __AVX512VPOPCNTDQ__
     AVX512_POPCNT,
@@ -424,8 +425,11 @@ static const std::map<select_modes, std::string> select_mode_map = {
     {select_modes::BMI2_PDEP_TZCNT, "BMI2_PDEP_TZCNT"},  //
 #endif
 #ifdef __AVX2__
-    {select_modes::AVX2_POPCNT, "AVX2_POPCNT"},        //
-    {select_modes::AVX2_POPCNT_EX, "AVX2_POPCNT_EX"},  //
+    {select_modes::AVX2_POPCNT, "AVX2_POPCNT"},  //
+#endif
+#ifdef __AVX512VL__
+    {select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM,
+     "AVX2_POPCNT_AVX512_PREFIX_SUM"},  //
 #endif
 #ifdef __AVX512VPOPCNTDQ__
     {select_modes::AVX512_POPCNT, "AVX512_POPCNT"},        //
@@ -566,7 +570,7 @@ inline uint64_t select_u64<select_modes::BMI2_PDEP_TZCNT>(uint64_t x,
 // Without AVX512VPOPCNTDQ
 template <select_modes Mode>
 inline uint64_t select_u256(const uint64_t* x, uint64_t k) {
-    assert(k < rank_u256<rank_modes::NOCPU>(x));
+    assert(k < rank_u256<rank_modes::NOCPU>(x, 255));
 
 #ifdef __SSE__
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
@@ -588,11 +592,12 @@ inline uint64_t select_u256(const uint64_t* x, uint64_t k) {
 
     return i * 64 + select_u64<Mode>(x[i], k);
 }
+
 #ifdef __AVX2__
 template <>
 inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
                                                        uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x));
+    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
@@ -613,10 +618,13 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
 
     return i * 64 + select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
 }
+#endif
+
+#ifdef __AVX512VL__
 template <>
-inline uint64_t select_u256<select_modes::AVX2_POPCNT_EX>(const uint64_t* x,
-                                                          uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x));
+inline uint64_t select_u256<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(
+    const uint64_t* x, uint64_t k) {
+    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
@@ -638,11 +646,12 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_EX>(const uint64_t* x,
            select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
 }
 #endif
+
 #ifdef __AVX512VPOPCNTDQ__
 template <>
 inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
                                                          uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x));
+    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
@@ -666,7 +675,7 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
 template <>
 inline uint64_t select_u256<select_modes::AVX512_POPCNT_EX>(const uint64_t* x,
                                                             uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x));
+    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx =
