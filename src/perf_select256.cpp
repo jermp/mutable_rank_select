@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
     else if (mode == "avx512") {
         test<select_modes::AVX512_POPCNT>(density);
     } else if (mode == "avx512_ex") {
-        test<select_modes::AVX512_POPCNT_EX>(density);
+        test<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(density);
     }
 #endif
     else {
