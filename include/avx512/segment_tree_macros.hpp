@@ -55,28 +55,33 @@
     node2.update(child2 + 1, delta);                                     \
     node3.update(child3, delta);
 
-#define DYRS_AVX512_SEARCH_H1      \
-    node512 node1(m_ptr);          \
-    uint64_t i1 = node1.search(x); \
-    return i1;
+#define DYRS_AVX512_SEARCH_H1  \
+    node512 node1(m_ptr);      \
+    auto p1 = node1.search(x); \
+    return p1;
 
 #define DYRS_AVX512_SEARCH_H2                                    \
     node256 node1(m_ptr);                                        \
-    uint64_t i1 = node1.search(x) - 1;                           \
-    x -= node1.sum(i1);                                          \
+    auto p1 = node1.search(x);                                   \
+    x -= p1.sum;                                                 \
+    uint64_t i1 = p1.position - 1;                               \
     node512 node2(m_ptr + node256::bytes + i1 * node512::bytes); \
-    uint64_t i2 = node2.search(x);                               \
-    return i1 * node512::fanout + i2;
+    auto p2 = node2.search(x);                                   \
+    return {i1 * node512::fanout + p2.position, p1.sum + p2.sum};
 
-#define DYRS_AVX512_SEARCH_H3                                    \
-    node128 node1(m_ptr);                                        \
-    uint64_t i1 = node1.search(x) - 1;                           \
-    x -= node1.sum(i1);                                          \
-    node256 node2(m_ptr + node128::bytes + i1 * node256::bytes); \
-    uint64_t i2 = node2.search(x) - 1;                           \
-    x -= node2.sum(i2);                                          \
-    node512 node3(m_ptr + node128::bytes +                       \
-                  m_num_nodes_per_level[1] * node256::bytes +    \
-                  (i2 + i1 * node256::fanout) * node512::bytes); \
-    uint64_t i3 = node3.search(x);                               \
-    return i1 * node512::fanout * node256::fanout + i2 * node512::fanout + i3;
+#define DYRS_AVX512_SEARCH_H3                                               \
+    node128 node1(m_ptr);                                                   \
+    auto p1 = node1.search(x);                                              \
+    x -= p1.sum;                                                            \
+    uint64_t i1 = p1.position - 1;                                          \
+    node256 node2(m_ptr + node128::bytes + i1 * node256::bytes);            \
+    auto p2 = node2.search(x);                                              \
+    x -= p2.sum;                                                            \
+    uint64_t i2 = p2.position - 1;                                          \
+    node512 node3(m_ptr + node128::bytes +                                  \
+                  m_num_nodes_per_level[1] * node256::bytes +               \
+                  (i2 + i1 * node256::fanout) * node512::bytes);            \
+    auto p3 = node3.search(x);                                              \
+    return {i1 * node512::fanout * node256::fanout + i2 * node512::fanout + \
+                p3.position,                                                \
+            p1.sum + p2.sum + p3.sum};

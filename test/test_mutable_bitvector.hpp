@@ -83,6 +83,7 @@ void test_mutable_bitvector(uint64_t num_bits, double density) {
         uint64_t pos = distr.next() % vec.size();
         vec.flip(pos);
     }
+
     rank();
     select();
 

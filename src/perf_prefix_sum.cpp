@@ -83,7 +83,7 @@ struct test {
                 } else if (operation == "search") {
                     for (int run = 0; run != runs; ++run) {
                         t.start();
-                        for (auto q : queries) total += tree.search(q);
+                        for (auto q : queries) total += tree.search(q).position;
                         t.stop();
                     }
                 } else if (operation == "build") {

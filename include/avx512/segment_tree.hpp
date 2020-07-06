@@ -164,7 +164,7 @@ struct segment_tree {
         if constexpr (Height == 3) { DYRS_AVX512_UPDATE_H3 }
     }
 
-    uint64_t search(uint64_t x) const {
+    search_result search(uint64_t x) const {
         if constexpr (Height == 1) { DYRS_AVX512_SEARCH_H1 }
         if constexpr (Height == 2) { DYRS_AVX512_SEARCH_H2 }
         if constexpr (Height == 3) { DYRS_AVX512_SEARCH_H3 }

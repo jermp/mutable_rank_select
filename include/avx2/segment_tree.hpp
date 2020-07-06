@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 
+#include "../util.hpp"
 #include "segment_tree_macros.hpp"
 
 namespace dyrs::avx2 {
@@ -174,7 +175,7 @@ struct segment_tree {
         if constexpr (Height == 4) { DYRS_AVX2_UPDATE_H4 }
     }
 
-    uint64_t search(uint64_t x) const {
+    search_result search(uint64_t x) const {
         if constexpr (Height == 1) { DYRS_AVX2_SEARCH_H1 }
         if constexpr (Height == 2) { DYRS_AVX2_SEARCH_H2 }
         if constexpr (Height == 3) { DYRS_AVX2_SEARCH_H3 }

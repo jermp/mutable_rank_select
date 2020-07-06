@@ -2,6 +2,11 @@
 
 namespace dyrs {
 
+struct search_result {
+    uint64_t position;
+    uint64_t sum;  // sum of values up to (excluding) position
+};
+
 template <typename SummaryType, typename KeyType>
 void build_node_prefix_sums(KeyType const* input, uint8_t* out,
                             uint64_t segment_size, uint64_t num_segments,
@@ -25,8 +30,7 @@ void build_node_prefix_sums(KeyType const* input, uint8_t* out,
 }
 
 // From http://xoroshiro.di.unimi.it/splitmix64.c
-class splitmix64 {
-public:
+struct splitmix64 {
     splitmix64(uint64_t seed) : x(seed){};
 
     uint64_t next() {

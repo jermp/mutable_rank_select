@@ -57,16 +57,20 @@ void test_node() {
             0, max_sum - 1, essentials::get_random_seed());
         for (uint32_t i = 0; i != 10000; ++i) {
             uint64_t x = distr.gen();
-            uint64_t expected = 0;
-            for (uint64_t sum = 0; expected != Node::fanout; ++expected) {
-                sum += A[expected];
-                if (sum > x) break;
+            uint64_t expected_position = 0;
+            uint64_t expected_sum = 0;
+            for (; expected_position != Node::fanout; ++expected_position) {
+                if (expected_sum + A[expected_position] > x) break;
+                expected_sum += A[expected_position];
             }
-            uint64_t got = node.search(x);
-            REQUIRE_MESSAGE(got == expected, "error during SEARCH: got search("
-                                                 << x << ") = " << got
-                                                 << " but expected "
-                                                 << expected);
+            auto got = node.search(x);
+            bool good = (got.position == expected_position) and
+                        (got.sum == expected_sum);
+            REQUIRE_MESSAGE(good, "error during SEARCH: got search("
+                                      << x << ") = (" << got.position << ","
+                                      << got.sum << ")"
+                                      << " but expected (" << expected_position
+                                      << "," << expected_sum << ")");
         }
     }
 

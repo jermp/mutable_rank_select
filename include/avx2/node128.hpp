@@ -72,7 +72,7 @@ struct node128 {
 
     /* return the smallest i in [0,fanout-1] such that sum(i) > x;
        in this case x is always < sum(fanout-1) by assumption */
-    uint64_t search(uint64_t x) const {
+    search_result search(uint64_t x) const {
         assert(x < sum(fanout - 1));
         uint64_t i = 0;
 #ifdef DISABLE_AVX
@@ -98,7 +98,7 @@ struct node128 {
         i += index_fs<16>(cmp2);
 #endif
         assert(i < fanout);
-        return i;
+        return {i, i ? sum(i - 1) : 0};
     }
 
 private:

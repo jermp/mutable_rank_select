@@ -71,8 +71,8 @@ struct node128 {
 
     /* return the smallest i in [0,fanout-1] such that sum(i) > x;
        if x >= sum(fanout-1), then fanout is returned */
-    uint64_t search(uint64_t x) const {
-        if (x >= sum(fanout - 1)) return fanout;
+    search_result search(uint64_t x) const {
+        if (x >= sum(fanout - 1)) return {fanout, sum(fanout - 1)};
         uint64_t i = 0;
 #ifdef AVX512
         __mmask8 cmp1 = _mm512_cmpgt_epi64_mask(
@@ -97,7 +97,7 @@ struct node128 {
             if (keys[i] > x) break;
         }
 #endif
-        return i;
+        return {i, i ? sum(i - 1) : 0};
     }
 
 private:
