@@ -33,6 +33,8 @@ void perf_test(std::string const& operation, std::string const& name) {
         std::generate(input.begin(), input.end(),
                       [&] { return distr_values.gen(); });
         Tree tree(input.data(), n);
+        std::cout << "### space in bytes: " << (tree.bitCount() + 7) / 8
+                  << std::endl;
 
         if (operation == "sarch") {
             uint64_t max_sum = tree.prefix(n);
