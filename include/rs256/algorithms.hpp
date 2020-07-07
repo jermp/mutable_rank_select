@@ -632,8 +632,9 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
-    const __m256i mcnts = popcount_m256i(mx);
-    uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
+    volatile const __m256i mcnts = popcount_m256i(mx);
+    volatile uint64_t const* cnts =
+        reinterpret_cast<volatile uint64_t const*>(&mcnts);
 
     uint64_t i = 0;
     while (i < 4) {
@@ -676,8 +677,9 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
-    const __m256i mcnts = _mm256_popcnt_epi64(mx);
-    uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
+    volatile const __m256i mcnts = _mm256_popcnt_epi64(mx);
+    volatile uint64_t const* cnts =
+        reinterpret_cast<volatile uint64_t const*>(&mcnts);
 
     uint64_t i = 0;
     while (i < 4) {
