@@ -338,27 +338,28 @@ template <>
 inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
                                                    uint64_t i) {
     assert(i < 256);
+
+    static uint64_t cnts[4];
+
     uint64_t block = i / 64;
     uint64_t offset = (i + 1) & 63;
     uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+
     if (block == 0) {
         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
     } else if (block == 1) {
         const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
         const __m256i mcnts = popcount_m256i(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1];
     } else if (block == 2) {
         const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
         const __m256i mcnts = popcount_m256i(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1] + cnts[2];
     } else {
         const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
         const __m256i mcnts = popcount_m256i(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1] + cnts[2] + cnts[3];
     }
@@ -369,27 +370,28 @@ template <>
 inline uint64_t rank_u256<rank_modes::AVX512_POPCNT>(const uint64_t* x,
                                                      uint64_t i) {
     assert(i < 256);
+
+    static uint64_t cnts[4];
+
     uint64_t block = i / 64;
     uint64_t offset = (i + 1) & 63;
     uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+
     if (block == 0) {
         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
     } else if (block == 1) {
         const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1];
     } else if (block == 2) {
         const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1] + cnts[2];
     } else {
         const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-        uint64_t cnts[4];
         _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
         return cnts[0] + cnts[1] + cnts[2] + cnts[3];
     }
@@ -623,7 +625,7 @@ inline uint64_t select_u256<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
 
-    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    static uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
     return i * 64 +
@@ -640,7 +642,7 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
     const __m256i mcnts = popcount_m256i(mx);
 
-    uint64_t cnts[4];
+    static uint64_t cnts[4];
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
 
     uint64_t i = 0;
@@ -668,7 +670,7 @@ inline uint64_t select_u256<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
 
-    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    static uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
     return i * 64 +
@@ -686,7 +688,7 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
     const __m256i mcnts = _mm256_popcnt_epi64(mx);
 
-    uint64_t cnts[4];
+    static uint64_t cnts[4];
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), mcnts);
 
     uint64_t i = 0;
@@ -712,7 +714,7 @@ inline uint64_t select_u256<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(
     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
 
-    uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
+    static uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
     return i * 64 +
