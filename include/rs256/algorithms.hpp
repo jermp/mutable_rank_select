@@ -604,10 +604,11 @@ inline uint64_t select_u256<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(
     assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
-    const uint64_t cnts[4] = {rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]),
-                              rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]),
-                              rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]),
-                              rank_u64<rank_modes::SSE4_2_POPCNT>(x[3])};
+    static uint64_t cnts[4];
+    cnts[0] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]);
+    cnts[1] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]);
+    cnts[2] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]);
+    cnts[3] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[3]);
 
     const __m256i mcnts =
         _mm256_loadu_si256(reinterpret_cast<const __m256i*>(cnts));
