@@ -143,7 +143,8 @@ void perf_test(std::string const& operation, std::string const& name) {
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("type",
-               "Searchable Prefix-Sum type. Either 'avx2' or 'avx512'.");
+               "Searchable Prefix-Sum type. Available types are: 'ByteF(L)', "
+               "'BitF(L)', 'FixedF(L)'.");
     parser.add(
         "operation",
         "Either 'sum', 'update', 'search', or 'build'. If 'build' is "
@@ -165,6 +166,12 @@ int main(int argc, char** argv) {
         perf_test<hft::fenwick::BitF<BOUND>>(operation, type);
     } else if (type == "FixedF") {
         perf_test<hft::fenwick::FixedF<BOUND>>(operation, type);
+    } else if (type == "ByteL") {
+        perf_test<hft::fenwick::ByteL<BOUND>>(operation, type);
+    } else if (type == "BitL") {
+        perf_test<hft::fenwick::BitL<BOUND>>(operation, type);
+    } else if (type == "FixedL") {
+        perf_test<hft::fenwick::FixedL<BOUND>>(operation, type);
     } else {
         std::cout << "unknown type \"" << type << "\"" << std::endl;
         return 1;
