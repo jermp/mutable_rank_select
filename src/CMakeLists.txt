@@ -1,5 +1,7 @@
 add_executable(perf_prefix_sum perf_prefix_sum.cpp)
+add_executable(perf_rank64 perf_rank64.cpp)
 add_executable(perf_rank256 perf_rank256.cpp)
+add_executable(perf_select64 perf_select64.cpp)
 add_executable(perf_select256 perf_select256.cpp)
 add_executable(perf_mutable_bitvector perf_mutable_bitvector.cpp)
 add_executable(perf_hft perf_hft.cpp)
