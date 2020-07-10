@@ -327,11 +327,30 @@ inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
     uint64_t offset = (i + 1) & 63;
     uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     uint64_t rank_in_block = rank_u64<Mode>(x[block] & mask);
-    uint64_t sum = 0;
-    if (block) {
-        for (uint64_t b = 0; b <= block - 1; ++b) sum += rank_u64<Mode>(x[b]);
-    }
-    return sum + rank_in_block;
+    // 1. for loop
+    // uint64_t sum = 0;
+    // if (block) {
+    //     for (uint64_t b = 0; b <= block - 1; ++b) sum +=
+    //     rank_u64<Mode>(x[b]);
+    // }
+    // return sum + rank_in_block;
+
+    // 2. independent counts
+    // static uint64_t counts[4];
+    // counts[0] = 0;
+    // counts[1] = rank_u64<Mode>(x[0]);
+    // counts[2] = rank_u64<Mode>(x[0]) + rank_u64<Mode>(x[1]);
+    // counts[3] =
+    //     rank_u64<Mode>(x[0]) + rank_u64<Mode>(x[1]) + rank_u64<Mode>(x[2]);
+
+    // 3. dependent counts: this approach is faster
+    static uint64_t counts[4];
+    counts[0] = 0;
+    counts[1] = rank_u64<Mode>(x[0]);
+    counts[2] = counts[1] + rank_u64<Mode>(x[1]);
+    counts[3] = counts[2] + rank_u64<Mode>(x[2]);
+
+    return counts[block] + rank_in_block;
 }
 #ifdef __AVX2__
 template <>
@@ -341,24 +360,38 @@ inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
     uint64_t block = i / 64;
     uint64_t offset = (i + 1) & 63;
     uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
-    if (block == 0) {
-        return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
-    } else if (block == 1) {
-        const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
-        const __m256i mcnts = popcount_m256i(mx);
-        uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-        return cnts[0] + cnts[1];
-    } else if (block == 2) {
-        const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
-        const __m256i mcnts = popcount_m256i(mx);
-        uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-        return cnts[0] + cnts[1] + cnts[2];
-    } else {
-        const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
-        const __m256i mcnts = popcount_m256i(mx);
-        uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-        return cnts[0] + cnts[1] + cnts[2] + cnts[3];
-    }
+
+    // 1. if + set_epi64
+    // if (block == 0) {
+    //     return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
+    // } else if (block == 1) {
+    //     const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
+    //     const __m256i mcnts = popcount_m256i(mx);
+    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
+    //     return cnts[0] + cnts[1];
+    // } else if (block == 2) {
+    //     const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
+    //     const __m256i mcnts = popcount_m256i(mx);
+    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
+    //     return cnts[0] + cnts[1] + cnts[2];
+    // } else {
+    //     const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
+    //     const __m256i mcnts = popcount_m256i(mx);
+    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
+    //     return cnts[0] + cnts[1] + cnts[2] + cnts[3];
+    // }
+
+    // 2. dependent counts
+    uint64_t rank_in_block =
+        rank_u64<rank_modes::SSE4_2_POPCNT>(x[block] & mask);
+    const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
+    uint64_t const* C = reinterpret_cast<uint64_t const*>(&mcnts);
+    static uint64_t counts[4];
+    counts[0] = 0;
+    counts[1] = C[0];
+    counts[2] = counts[1] + C[1];
+    counts[3] = counts[2] + C[2];
+    return counts[block] + rank_in_block;
 }
 #endif
 #ifdef __AVX512VPOPCNTDQ__
