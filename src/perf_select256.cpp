@@ -145,6 +145,8 @@ int main(int argc, char** argv) {
 #ifdef __AVX512VL__
     else if (mode == "bmi2_pt_avx512_ps") {
         test<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(density);
+    } else if (mode == "avx2_pc_avx512_ps") {
+        test<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(density);
     }
 #endif
 #ifdef __AVX2__
@@ -152,18 +154,13 @@ int main(int argc, char** argv) {
         test<select_modes::AVX2_POPCNT>(density);
     }
 #endif
-#ifdef __AVX512VL__
-    else if (mode == "avx2_pc_avx512_ps") {
-        test<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(density);
-    }
-#endif
-#ifdef __AVX512VPOPCNTDQ__
-    else if (mode == "avx512_pc") {
-        test<select_modes::AVX512_POPCNT>(density);
-    } else if (mode == "avx512_pc_avx512_ps") {
-        test<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(density);
-    }
-#endif
+    // #ifdef __AVX512VPOPCNTDQ__
+    //     else if (mode == "avx512_pc") {
+    //         test<select_modes::AVX512_POPCNT>(density);
+    //     } else if (mode == "avx512_pc_avx512_ps") {
+    //         test<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(density);
+    //     }
+    // #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;

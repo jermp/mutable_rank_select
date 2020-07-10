@@ -137,11 +137,11 @@ int main(int argc, char** argv) {
         test<rank_modes::AVX2_POPCNT>(density);
     }
 #endif
-#ifdef __AVX512VPOPCNTDQ__
-    else if (mode == "avx512") {
-        test<rank_modes::AVX512_POPCNT>(density);
-    }
-#endif
+    // #ifdef __AVX512VPOPCNTDQ__
+    //     else if (mode == "avx512") {
+    //         test<rank_modes::AVX512_POPCNT>(density);
+    //     }
+    // #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;
