@@ -11,6 +11,7 @@
 #include "avx512/segment_tree.hpp"
 
 #include "mutable_bitvector.hpp"
+#include "mutable_bitvector_64.hpp"
 
 namespace dyrs {
 
