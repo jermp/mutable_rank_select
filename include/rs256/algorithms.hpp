@@ -598,6 +598,7 @@ inline uint64_t select_u64<select_modes::SSE4_2_POPCNT_BROADWORD>(uint64_t x,
     return place + select_in_byte[((x >> place) & 0xFF) | (byte_rank << 8)];
 }
 #endif
+
 #ifdef __BMI2__
 template <>
 inline uint64_t select_u64<select_modes::BMI2_PDEP_TZCNT>(uint64_t x,
@@ -630,6 +631,7 @@ inline uint64_t select_u256(const uint64_t* x, uint64_t k) {
 
     return i * 64 + select_u64<Mode>(x[i], k);
 }
+
 #ifdef __AVX512VL__
 template <>
 inline uint64_t select_u256<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(
@@ -655,6 +657,7 @@ inline uint64_t select_u256<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(
            select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
 }
 #endif
+
 #ifdef __AVX2__
 template <>
 inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,

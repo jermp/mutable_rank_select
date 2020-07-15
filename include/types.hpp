@@ -25,4 +25,10 @@ typedef rank_select_modes<rank_modes::SSE4_2_POPCNT,
                           select_modes::BMI2_PDEP_TZCNT>
     rank_select_modes_1;
 
+#ifdef __AVX512VL__
+typedef rank_select_modes<rank_modes::SSE4_2_POPCNT,
+                          select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>
+    rank_select_modes_2;
+#endif
+
 }  // namespace dyrs

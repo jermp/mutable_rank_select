@@ -195,12 +195,22 @@ int main(int argc, char** argv) {
     if (parser.parsed("name")) name = parser.get<std::string>("name");
     if (parser.parsed("i")) i = parser.get<int>("i");
 
-    if (type == "avx2") {
+    if (type == "avx2_1") {
         perf_test<avx2::segment_tree, rank_select_modes_1>(operation, density,
                                                            name, i);
-    } else if (type == "avx512") {
+    } else if (type == "avx512_1") {
         perf_test<avx512::segment_tree, rank_select_modes_1>(operation, density,
                                                              name, i);
+
+#ifdef __AVX512VL__
+    } else if (type == "avx2_2") {
+        perf_test<avx2::segment_tree, rank_select_modes_2>(operation, density,
+                                                           name, i);
+    } else if (type == "avx512_2") {
+        perf_test<avx512::segment_tree, rank_select_modes_2>(operation, density,
+                                                             name, i);
+#endif
+
     } else {
         std::cout << "unknown type \"" << type << "\"" << std::endl;
         return 1;
