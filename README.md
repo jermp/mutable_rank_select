@@ -32,10 +32,15 @@ disable them (although your compiler has proper support), you can compile with
 	cmake .. -DDISABLE_AVX=On
 	make -j
 
+The library also exploits the new AVX512 instruction set. If you have proper support,
+you can enable those instructions with
 
-For the best of performance, we recommend compiling with (default configuration):
+	cmake .. -DAVX512=On
+	make -j
 
-	cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SANITIZERS=Off -DDISABLE_AVX=Off
+For the best of performance, we recommend compiling with:
+
+	cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SANITIZERS=Off -DDISABLE_AVX=Off -DAVX512=On
 	make -j
 
 For a testing environment, use the following instead:
