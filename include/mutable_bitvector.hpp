@@ -79,10 +79,10 @@ struct mutable_bitvector {
 
     uint64_t select(uint64_t i) const {
         assert(i < size());
-        auto pair = m_index.search(i);
-        uint64_t offset = i - pair.sum;  // i - m_index.sum(pair.position - 1);
-        return 256 * pair.position +
-               select_u256<SelectMode>(&m_bits[4 * pair.position], offset);
+        auto [block, sum] = m_index.search(i);
+        uint64_t offset = i - sum;  // i - m_index.sum(block - 1);
+        return 256 * block +
+               select_u256<SelectMode>(&m_bits[4 * block], offset);
     }
 
 private:
