@@ -1,0 +1,1 @@
+add_subdirectory(succinct EXCLUDE_FROM_ALL)

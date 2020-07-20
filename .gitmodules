@@ -7,3 +7,6 @@
 [submodule "external/cmd_line_parser"]
 	path = external/cmd_line_parser
 	url = https://github.com/jermp/cmd_line_parser.git
+[submodule "external/succinct"]
+	path = external/succinct
+	url = https://github.com/ot/succinct.git
