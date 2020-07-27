@@ -352,7 +352,7 @@ inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
 
     return counts[block] + rank_in_block;
 }
-#ifdef __AVX2__
+#ifdef __AVX512VL__
 template <>
 inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
                                                    uint64_t i) {
@@ -382,16 +382,23 @@ inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
     // }
 
     // 2. dependent counts
+    // uint64_t rank_in_block =
+    //     rank_u64<rank_modes::SSE4_2_POPCNT>(x[block] & mask);
+    // const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i
+    // const*)x)); uint64_t const* C = reinterpret_cast<uint64_t
+    // const*>(&mcnts); static uint64_t counts[4]; counts[0] = 0; counts[1] =
+    // C[0]; counts[2] = counts[1] + C[1]; counts[3] = counts[2] + C[2]; return
+    // counts[block] + rank_in_block;
+
+    // 3. dependent counts with avx512
     uint64_t rank_in_block =
         rank_u64<rank_modes::SSE4_2_POPCNT>(x[block] & mask);
     const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
-    uint64_t const* C = reinterpret_cast<uint64_t const*>(&mcnts);
-    static uint64_t counts[4];
-    counts[0] = 0;
-    counts[1] = C[0];
-    counts[2] = counts[1] + C[1];
-    counts[3] = counts[2] + C[2];
-    return counts[block] + rank_in_block;
+    const __m256i msums = prefixsum_epi64(mcnts);
+
+    static uint64_t sums[5] = {0ULL};  // the 1st element is a sentinel
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
+    return sums[block] + rank_in_block;
 }
 #endif
 
