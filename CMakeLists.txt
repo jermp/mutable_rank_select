@@ -44,10 +44,6 @@ find_package(Boost 1.42.0 COMPONENTS unit_test_framework iostreams system filesy
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-# SDSL
-include_directories($ENV{HOME}/include)
-link_directories($ENV{HOME}/lib)
-
 include_directories(${DYRS_SOURCE_DIR}/include)
 
 add_subdirectory(external)

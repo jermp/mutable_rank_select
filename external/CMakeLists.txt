@@ -1,1 +1,2 @@
+add_subdirectory(sdsl-lite EXCLUDE_FROM_ALL)
 add_subdirectory(succinct EXCLUDE_FROM_ALL)

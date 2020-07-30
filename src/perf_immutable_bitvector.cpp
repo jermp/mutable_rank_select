@@ -8,9 +8,9 @@
 #include "../external/cmd_line_parser/include/parser.hpp"
 
 // SDSL
-#include <sdsl/rank_support.hpp>
-#include <sdsl/select_support.hpp>
-#include <sdsl/bit_vector_il.hpp>
+#include "../external/sdsl-lite/include/sdsl/rank_support.hpp"
+#include "../external/sdsl-lite/include/sdsl/select_support.hpp"
+#include "../external/sdsl-lite/include/sdsl/bit_vector_il.hpp"
 
 // Succinct (or Broadword)
 #include "../external/succinct/rs_bit_vector.hpp"
@@ -416,7 +416,7 @@ void perf_test(std::string const& operation, double density,
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("type", "Searchable Prefix-Sum type.");
+    parser.add("type", "Immutable Rank/Select data structure types.");
     parser.add(
         "operation",
         "Either 'rank', 'select', or 'build'. If 'build' is "
