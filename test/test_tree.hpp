@@ -31,6 +31,7 @@ void test_tree(size_t n) {
     }
 
     auto update = [&](int8_t delta) {
+        bool sign = delta >> 7;
         essentials::logger("testing update(" + std::to_string(delta) + ")...");
         static constexpr uint32_t update_queries = 5000;
         uint32_t step = n / update_queries;
@@ -39,7 +40,7 @@ void test_tree(size_t n) {
             uint64_t expected = 0;
             uint32_t k = 0;
             for (uint32_t i = 0; i < n; i += step) {
-                tree.update(i, delta);
+                tree.update(i, sign);
                 uint64_t got = tree.sum(i);
                 A[i] += delta;
                 for (; k != i + 1; ++k) expected += A[k];
