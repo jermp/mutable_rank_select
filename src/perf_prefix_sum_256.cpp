@@ -11,10 +11,14 @@
 using namespace dyrs;
 
 static constexpr int runs = 100;
-static constexpr uint32_t num_queries = 10000;
-static constexpr uint64_t bits_seed = 15;
+static constexpr uint32_t num_queries = 1000000;
+static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
+static constexpr double density = 0.5;
 
+static constexpr std::array<uint64_t, 1> sizes = {
+    1ULL << 8,
+};
 // static constexpr std::array<uint64_t, 25> sizes = {
 //     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
 //     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
@@ -22,46 +26,45 @@ static constexpr uint64_t query_seed = 71;
 //     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
 //     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 // };
-static constexpr std::array<uint64_t, 1> sizes = {1ULL << 8};
 
-enum class popcount_modes { BROADWORD, BUILTIN, AVX2 };
+enum class prefixsum_modes { LOOP, UNROLLED_LOOP, PARALLEL };
 
-template <popcount_modes>
-uint64_t popcount_256(const uint64_t*) {
+template <prefixsum_modes>
+uint64_t prefixsum_256(const uint64_t*, uint64_t) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-uint64_t popcount_256<popcount_modes::BROADWORD>(const uint64_t* x) {
-    uint64_t tmp = 0;
-    tmp += rank_u64<rank_modes::NOCPU>(x[0]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[1]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[2]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[3]);
-    return tmp;
+uint64_t prefixsum_256<prefixsum_modes::LOOP>(const uint64_t* x, uint64_t k) {
+    uint64_t sum = 0;
+    for (uint64_t i = 0; i <= k; i++) { sum += x[i]; }
+    return sum;
 }
 template <>
-uint64_t popcount_256<popcount_modes::BUILTIN>(const uint64_t* x) {
-    uint64_t tmp = 0;
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[3]);
-    return tmp;
+uint64_t prefixsum_256<prefixsum_modes::UNROLLED_LOOP>(const uint64_t* x,
+                                                       uint64_t k) {
+    static uint64_t sums[4] = {};
+    sums[0] = x[0];
+    sums[1] = sums[0] + x[1];
+    sums[2] = sums[1] + x[2];
+    sums[3] = sums[2] + x[3];
+    return sums[k];
 }
 
-template <popcount_modes>
-__m256i popcount_256(const __m256i x) {
+template <prefixsum_modes>
+uint64_t prefixsum_256(__m256i, uint64_t) {
     assert(false);  // should not come
-    return __m256i{};
+    return UINT64_MAX;
 }
 template <>
-__m256i popcount_256<popcount_modes::AVX2>(const __m256i x) {
-    return popcount_m256i(x);
+uint64_t prefixsum_256<prefixsum_modes::PARALLEL>(__m256i x, uint64_t k) {
+    static uint64_t sums[4] = {};
+    _mm256_storeu_si256((__m256i*)(sums), prefixsum_epi64(x));
+    return sums[k];
 }
 
-template <popcount_modes Mode>
-void test(std::string type, const double density) {
+template <prefixsum_modes Mode>
+void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
     std::cout << "# number of ones: " << num_ones << " ("
@@ -75,44 +78,41 @@ void test(std::string type, const double density) {
         splitmix64 hasher(query_seed);
 
         const auto num_buckets = n / 256;
-        std::vector<const uint64_t*> queries(num_queries);
+        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
 
         for (uint64_t i = 0; i < num_queries; i++) {
-            queries[i] = &bits[(hasher.next() % num_buckets) * 256 / 64];
+            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
+            queries[i] = {x, hasher.next() % 4};
         }
 
         essentials::timer_type t;
         double min = 0.0, max = 0.0, avg = 0.0;
 
         auto measure = [&]() {
-            if constexpr (Mode != popcount_modes::AVX2) {
-                uint64_t tmp = 0;  // to avoid the optimization
+            uint64_t tmp = 0;  // to avoid the optimization
+            if constexpr (Mode != prefixsum_modes::PARALLEL) {
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i];
-                        tmp += popcount_256<Mode>(x);
+                        const uint64_t* x = queries[i].first;
+                        const uint64_t k = queries[i].second;
+                        tmp += prefixsum_256<Mode>(x, k);
                     }
                     t.stop();
                 }
-                std::cout << "# ignore: " << tmp << std::endl;
             } else {
-                __m256i tmp{};  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i];
-                        tmp = popcount_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x));
+                        const uint64_t* x = queries[i].first;
+                        const uint64_t k = queries[i].second;
+                        tmp += prefixsum_256<Mode>(
+                            _mm256_loadu_si256((__m256i const*)x), k);
                     }
                     t.stop();
                 }
-                std::cout << "# ignore: "  //
-                          << _mm256_extract_epi64(tmp, 0)
-                          << _mm256_extract_epi64(tmp, 1)
-                          << _mm256_extract_epi64(tmp, 2)
-                          << _mm256_extract_epi64(tmp, 3) << std::endl;
             }
+            std::cout << "# ignore: " << tmp << std::endl;
         };
 
         static constexpr int K = 10;
@@ -171,23 +171,18 @@ void test(std::string type, const double density) {
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("mode", "Mode of rank algorithm.");
-    parser.add("density", "Density of ones (in [0,1]).");
     if (!parser.parse()) return 1;
 
     auto mode = parser.get<std::string>("mode");
-    auto density = parser.get<double>("density");
 
-    if (mode == "broadword") {
-        test<popcount_modes::BROADWORD>(mode, density);
+    if (mode == "loop") {
+        test<prefixsum_modes::LOOP>(mode);
+    } else if (mode == "unrolled_loop") {
+        test<prefixsum_modes::UNROLLED_LOOP>(mode);
     }
-#ifdef __SSE4_2__
-    else if (mode == "builtin") {
-        test<popcount_modes::BUILTIN>(mode, density);
-    }
-#endif
 #ifdef __AVX2__
-    else if (mode == "avx2") {
-        test<popcount_modes::AVX2>(mode, density);
+    else if (mode == "parallel") {
+        test<prefixsum_modes::PARALLEL>(mode);
     }
 #endif
     else {

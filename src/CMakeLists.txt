@@ -9,4 +9,5 @@ add_executable(perf_hft perf_hft.cpp)
 add_executable(perf_immutable_bitvector perf_immutable_bitvector.cpp)
 target_link_libraries(perf_immutable_bitvector sdsl succinct ${Boost_LIBRARIES})
 
-add_executable(perf_popcnt perf_popcnt.cpp)
+add_executable(perf_popcnt_256 perf_popcnt_256.cpp)
+add_executable(perf_prefix_sum_256 perf_prefix_sum_256.cpp)
