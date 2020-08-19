@@ -65,8 +65,7 @@ struct mutable_bitvector {
         uint64_t offset = i & 63;
         uint64_t block = i / 256;
         m_bits[word] ^= 1ULL << offset;
-        static constexpr int8_t deltas[2] = {+1, -1};
-        m_index.update(block, deltas[bit]);
+        m_index.update(block, bit);
     }
 
     uint64_t rank(uint64_t i) const {

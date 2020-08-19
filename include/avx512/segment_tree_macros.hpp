@@ -31,15 +31,15 @@
 
 #define DYRS_AVX512_UPDATE_H1 \
     node512 node1(m_ptr);     \
-    node1.update(i, delta);
+    node1.update(i, sign);
 
 #define DYRS_AVX512_UPDATE_H2                                        \
     uint64_t child1 = i / node512::fanout;                           \
     uint64_t child2 = i % node512::fanout;                           \
     node256 node1(m_ptr);                                            \
     node512 node2(m_ptr + node256::bytes + child1 * node512::bytes); \
-    node1.update(child1 + 1, delta);                                 \
-    node2.update(child2, delta);
+    node1.update(child1 + 1, sign);                                  \
+    node2.update(child2, sign);
 
 #define DYRS_AVX512_UPDATE_H3                                            \
     constexpr uint64_t B1 = node512::fanout * node256::fanout;           \
@@ -51,9 +51,9 @@
     node512 node3(m_ptr + node128::bytes +                               \
                   m_num_nodes_per_level[1] * node256::bytes +            \
                   (child2 + child1 * node256::fanout) * node512::bytes); \
-    node1.update(child1 + 1, delta);                                     \
-    node2.update(child2 + 1, delta);                                     \
-    node3.update(child3, delta);
+    node1.update(child1 + 1, sign);                                      \
+    node2.update(child2 + 1, sign);                                      \
+    node3.update(child3, sign);
 
 #define DYRS_AVX512_SEARCH_H1  \
     node512 node1(m_ptr);      \

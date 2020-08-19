@@ -38,14 +38,12 @@ struct node128 {
                                            num_segments * sizeof(summary_type));
     }
 
-    void update(uint64_t i, int8_t delta) {
+    void update(uint64_t i, bool sign) {
         if (i == fanout) return;
         assert(i < fanout);
-        assert(delta == +1 or delta == -1);
         uint64_t j = i / segment_size;
         uint64_t k = i % segment_size;
 #ifdef AVX512
-        bool sign = delta >> 7;
         __m512i s1 = _mm512_load_si512((__m512i const*)tables::update_8_64 + j +
                                        sign * num_segments);
         __m512i r1 =
@@ -57,6 +55,7 @@ struct node128 {
             _mm512_loadu_si512((__m512i const*)(keys + j * segment_size)), s2);
         _mm512_storeu_si512((__m512i*)(keys + j * segment_size), r2);
 #else
+        int8_t delta = sign ? -1 : +1;
         for (uint64_t z = j + 1; z != num_segments; ++z) summary[z] += delta;
         for (uint64_t z = k, base = j * segment_size; z != segment_size; ++z) {
             keys[base + z] += delta;

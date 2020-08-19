@@ -167,7 +167,9 @@ struct segment_tree {
         if constexpr (Height == 4) { DYRS_AVX2_SUM_H4 }
     }
 
-    void update(uint64_t i, int8_t delta) {
+    void update(uint64_t i,
+                bool sign  // the sign of the update: 0 for +1, or 1 for -1
+    ) {
         assert(i < size());
         if constexpr (Height == 1) { DYRS_AVX2_UPDATE_H1 }
         if constexpr (Height == 2) { DYRS_AVX2_UPDATE_H2 }

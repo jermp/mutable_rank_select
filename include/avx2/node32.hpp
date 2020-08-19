@@ -39,19 +39,18 @@ struct node32 {
                                            num_segments * sizeof(summary_type));
     }
 
-    void update(uint64_t i, int8_t delta) {
+    void update(uint64_t i, bool sign) {
         if (i == fanout) return;
         assert(i < fanout);
-        assert(delta == +1 or delta == -1);
         uint64_t j = i / segment_size;
         uint64_t k = i % segment_size;
 #ifdef DISABLE_AVX
+        int8_t delta = sign ? -1 : +1;
         for (uint64_t z = j + 1; z != num_segments; ++z) summary[z] += delta;
         for (uint64_t z = k, base = j * segment_size; z != segment_size; ++z) {
             keys[base + z] += delta;
         }
 #else
-        bool sign = delta >> 7;
         __m256i s1 = _mm256_load_si256((__m256i const*)tables::update_4_64 + j +
                                        sign * num_segments);
         __m256i r1 =
