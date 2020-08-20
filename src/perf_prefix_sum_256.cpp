@@ -34,12 +34,14 @@ uint64_t prefixsum_256(const uint64_t*, uint64_t) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
+
 template <>
 uint64_t prefixsum_256<prefixsum_modes::LOOP>(const uint64_t* x, uint64_t k) {
     uint64_t sum = 0;
     for (uint64_t i = 0; i <= k; i++) { sum += x[i]; }
     return sum;
 }
+
 template <>
 uint64_t prefixsum_256<prefixsum_modes::UNROLLED_LOOP>(const uint64_t* x,
                                                        uint64_t k) {
@@ -56,12 +58,15 @@ uint64_t prefixsum_256(__m256i, uint64_t) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
+
+#ifdef __AVX512VL__
 template <>
 uint64_t prefixsum_256<prefixsum_modes::PARALLEL>(__m256i x, uint64_t k) {
     static uint64_t sums[4] = {};
     _mm256_storeu_si256((__m256i*)(sums), prefixsum_epi64(x));
     return sums[k];
 }
+#endif
 
 template <prefixsum_modes Mode>
 void test(std::string type) {
@@ -180,7 +185,7 @@ int main(int argc, char** argv) {
     } else if (mode == "unrolled_loop") {
         test<prefixsum_modes::UNROLLED_LOOP>(mode);
     }
-#ifdef __AVX2__
+#ifdef __AVX512VL__
     else if (mode == "parallel") {
         test<prefixsum_modes::PARALLEL>(mode);
     }

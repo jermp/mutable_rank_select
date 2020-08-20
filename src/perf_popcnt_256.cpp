@@ -54,7 +54,7 @@ uint64_t popcount_256<popcount_modes::BUILTIN>(const uint64_t* x) {
 }
 
 template <popcount_modes>
-__m256i popcount_256(const __m256i x) {
+__m256i popcount_256(const __m256i) {
     assert(false);  // should not come
     return __m256i{};
 }
