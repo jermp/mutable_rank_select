@@ -10,8 +10,8 @@
 namespace dyrs::avx2 {
 
 struct node128 {
-    typedef uint16_t key_type;  // each key should be an integer in [0,2^8]
-    typedef uint16_t summary_type;
+    typedef uint16_t key_type;
+    typedef uint32_t summary_type;
     static constexpr uint64_t fanout = 128;
     static constexpr uint64_t segment_size = 16;
     static constexpr uint64_t num_segments = 8;
@@ -51,11 +51,11 @@ struct node128 {
             keys[base + z] += delta;
         }
 #else
-        __m128i s1 = _mm_load_si128((__m128i const*)tables::update_8_16 + j +
-                                    sign * num_segments);
-        __m128i r1 =
-            _mm_add_epi16(_mm_loadu_si128((__m128i const*)summary), s1);
-        _mm_storeu_si128((__m128i*)summary, r1);
+        __m256i s1 = _mm256_load_si256((__m256i const*)tables::update_8_32 + j +
+                                       1 + sign * (num_segments + 1));
+        __m256i r1 =
+            _mm256_add_epi32(_mm256_load_si256((__m256i const*)summary), s1);
+        _mm256_storeu_si256((__m256i*)summary, r1);
         __m256i s2 = _mm256_load_si256((__m256i const*)tables::update_16_16 +
                                        k + sign * segment_size);
         __m256i r2 = _mm256_add_epi16(
@@ -85,9 +85,9 @@ struct node128 {
             if (keys[i] > x) break;
         }
 #else
-        __m128i cmp1 = _mm_cmpgt_epi16(_mm_loadu_si128((__m128i const*)summary),
-                                       _mm_set1_epi16(x));
-        i = index_fs<16>(cmp1) - 1;
+        __m256i cmp1 = _mm256_cmpgt_epi32(
+            _mm256_loadu_si256((__m256i const*)summary), _mm256_set1_epi32(x));
+        i = index_fs<32>(cmp1) - 1;
         assert(i < num_segments);
         x -= summary[i];
         i *= segment_size;
