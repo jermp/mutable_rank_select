@@ -33,7 +33,9 @@ void perf_test(std::string const& operation, std::string const& name) {
         std::generate(input.begin(), input.end(),
                       [&] { return distr_values.gen(); });
         Tree tree(input.data(), n);
-        std::cout << "### space in bytes: " << (tree.bitCount() + 7) / 8
+        double bytes = static_cast<double>(tree.bitCount() + 7) / 8;
+        // std::cout << "### space in bytes: " << bytes << std::endl;
+        std::cout << "### space: " << bytes / n << " [bytes per element]"
                   << std::endl;
 
         if (operation == "sarch") {

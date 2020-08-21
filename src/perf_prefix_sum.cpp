@@ -47,7 +47,9 @@ struct test {
                               [&] { return distr_values.gen(); });
                 tree.build(input.data(), n);
             }
-            std::cout << "### space in bytes: " << tree.bytes() << std::endl;
+            // std::cout << "### space in bytes: " << tree.bytes() << std::endl;
+            std::cout << "### space: " << static_cast<double>(tree.bytes()) / n
+                      << " [bytes per element]" << std::endl;
 
             if (operation == "sarch") {
                 uint64_t max_sum = tree.sum(n - 1);
