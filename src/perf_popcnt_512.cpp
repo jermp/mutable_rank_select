@@ -17,54 +17,59 @@ static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.5;
 
 static constexpr std::array<uint64_t, 1> sizes = {
-    1ULL << 8,
+    1ULL << 9,
 };
-// static constexpr std::array<uint64_t, 25> sizes = {
-//     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-//     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-//     1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-//     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-//     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+// static constexpr std::array<uint64_t, 24> sizes = {
+//     1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
+//     1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
+//     1ULL << 21, 1ULL << 22, 1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26,
+//     1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 // };
 
-template <prefixsum_modes>
-inline uint64_t prefixsum_256(const uint64_t*, uint64_t) {
+template <popcount_modes>
+inline uint64_t popcount_512(const uint64_t*) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::loop>(const uint64_t* x,
-                                                     uint64_t k) {
-    uint64_t sum = 0;
-    for (uint64_t i = 0; i <= k; i++) { sum += x[i]; }
-    return sum;
+inline uint64_t popcount_512<popcount_modes::broadword>(const uint64_t* x) {
+    uint64_t tmp = 0;
+    tmp += popcount_u64<popcount_modes::broadword>(x[0]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[1]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[2]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[3]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[4]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[5]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[6]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[7]);
+    return tmp;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::unrolled>(const uint64_t* x,
-                                                         uint64_t k) {
-    static uint64_t sums[4] = {};
-    sums[0] = x[0];
-    sums[1] = sums[0] + x[1];
-    sums[2] = sums[1] + x[2];
-    sums[3] = sums[2] + x[3];
-    return sums[k];
+inline uint64_t popcount_512<popcount_modes::builtin>(const uint64_t* x) {
+    uint64_t tmp = 0;
+    tmp += popcount_u64<popcount_modes::builtin>(x[0]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[1]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[2]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[3]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[4]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[5]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[6]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[7]);
+    return tmp;
 }
-#ifdef __AVX512VL__
-template <prefixsum_modes>
-inline uint64_t prefixsum_256(__m256i, uint64_t) {
+#ifdef __AVX2__
+template <popcount_modes>
+inline __m512i popcount_512(const __m512i) {
     assert(false);  // should not come
-    return UINT64_MAX;
+    return __m512i{};
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::parallel>(__m256i x,
-                                                         uint64_t k) {
-    static uint64_t sums[4] = {};
-    _mm256_storeu_si256((__m256i*)(sums), prefixsum_m256i(x));
-    return sums[k];
+inline __m512i popcount_512<popcount_modes::avx2>(const __m512i x) {
+    return popcount_m512i(x);
 }
 #endif
 
-template <prefixsum_modes Mode>
+template <popcount_modes Mode>
 void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
@@ -78,42 +83,43 @@ void test(std::string type) {
     for (const uint64_t n : sizes) {
         splitmix64 hasher(query_seed);
 
-        const auto num_buckets = n / 256;
-        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
+        const auto num_buckets = n / 512;
+        std::vector<const uint64_t*> queries(num_queries);
 
         for (uint64_t i = 0; i < num_queries; i++) {
-            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
-            queries[i] = {x, hasher.next() % 4};
+            queries[i] = &bits[(hasher.next() % num_buckets) * 512 / 64];
         }
 
         essentials::timer_type t;
         double min = 0.0, max = 0.0, avg = 0.0;
 
         auto measure = [&]() {
-            uint64_t tmp = 0;  // to avoid the optimization
-            if constexpr (Mode != prefixsum_modes::parallel) {
+            if constexpr (Mode != popcount_modes::avx2) {
+                uint64_t tmp = 0;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i].first;
-                        const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(x, k);
+                        const uint64_t* x = queries[i];
+                        tmp += popcount_512<Mode>(x);
                     }
                     t.stop();
                 }
+                std::cout << "# ignore: " << tmp << std::endl;
             } else {
+                __m512i tmp{};  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i].first;
-                        const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x), k);
+                        const uint64_t* x = queries[i];
+                        tmp = popcount_512<Mode>(
+                            _mm512_loadu_si512((__m512i const*)x));
                     }
                     t.stop();
                 }
+                uint64_t tmp2[8];
+                _mm512_storeu_si512(reinterpret_cast<__m512i*>(tmp2), tmp);
+                std::cout << "# ignore: " << tmp2[0] << std::endl;
             }
-            std::cout << "# ignore: " << tmp << std::endl;
         };
 
         static constexpr int K = 10;
@@ -176,20 +182,22 @@ int main(int argc, char** argv) {
 
     auto mode = parser.get<std::string>("mode");
 
-    if (mode == "loop") {
-        test<prefixsum_modes::loop>(mode);
-    } else if (mode == "unrolled") {
-        test<prefixsum_modes::unrolled>(mode);
+    if (mode == "broadword") {
+        test<popcount_modes::broadword>(mode);
     }
-#ifdef __AVX512VL__
-    else if (mode == "parallel") {
-        test<prefixsum_modes::parallel>(mode);
+#ifdef __SSE4_2__
+    else if (mode == "builtin") {
+        test<popcount_modes::builtin>(mode);
+    }
+#endif
+#ifdef __AVX2__
+    else if (mode == "avx2") {
+        test<popcount_modes::avx2>(mode);
     }
 #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;
     }
-
     return 0;
 }

@@ -70,7 +70,8 @@ struct mutable_bitvector_64 {
         uint64_t word = i / 64;
         uint64_t offset = i & 63;
         uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
-        return rank_u64<RankMode>(m_bits[word] & mask) +
+        return popcount_u64<extract_popcount_mode(RankMode)>(m_bits[word] &
+                                                             mask) +
                (word ? m_index.sum(word - 1) : 0);
     }
 
@@ -79,7 +80,8 @@ struct mutable_bitvector_64 {
         auto pair = m_index.search(i);
         uint64_t offset = i - pair.sum;  // i - m_index.sum(pair.position - 1);
         return 64 * pair.position +
-               select_u64<SelectMode>(m_bits[pair.position], offset);
+               select_u64<extract_select64_mode(SelectMode)>(
+                   m_bits[pair.position], offset);
     }
 
 private:

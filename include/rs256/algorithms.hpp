@@ -245,55 +245,23 @@ inline uint64_t byte_counts(uint64_t x) {
     return x;
 }
 
-#ifdef __AVX512VL__
-// Compute prefix sum for 4 words in parallel, e.g., x=(2,3,1,2) -> x=(2,5,6,8)
-inline __m256i prefixsum_epi64(__m256i x) {
-    x = _mm256_add_epi64(
-        x, _mm256_maskz_permutex_epi64(0b11111110, x, _MM_SHUFFLE(2, 1, 0, 3)));
-    x = _mm256_add_epi64(
-        x, _mm256_maskz_permutex_epi64(0b11111100, x, _MM_SHUFFLE(1, 0, 3, 2)));
-    return x;
-}
-#endif
-
-// Modes of rank algorithms
-enum class rank_modes {
-    NOCPU,
-#ifdef __SSE4_2__
-    SSE4_2_POPCNT,
-#endif
-#ifdef __AVX2__
-    AVX2_POPCNT,
-#endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     AVX512_POPCNT,
-    // #endif
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   Popcount implementations
+ *
+ * * * * * * * * * * * * * * * * */
+enum class popcount_modes : int {
+    broadword = 0x00,
+    builtin = 0x01,
+    avx2 = 0x02,
 };
-
-static const std::map<rank_modes, std::string> rank_mode_map = {
-    {rank_modes::NOCPU, "NOCPU"},  //
-#ifdef __SSE4_2__
-    {rank_modes::SSE4_2_POPCNT, "SSE4_2_POPCNT"},  //
-#endif
-#ifdef __AVX2__
-    {rank_modes::AVX2_POPCNT, "AVX2_POPCNT"},  //
-#endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     {rank_modes::AVX512_POPCNT, "AVX512_POPCNT"},  //
-    // #endif
-};
-
-inline std::string print_rank_mode(rank_modes mode) {
-    return rank_mode_map.find(mode)->second;
-}
-
-template <rank_modes>
-inline uint64_t rank_u64(uint64_t) {
-    assert(false);  // should not come
-    return UINT64_MAX;
+template <popcount_modes>
+inline uint64_t popcount_u64(uint64_t) {
+    assert(false);
+    return 0;  // should not come
 }
 template <>
-inline uint64_t rank_u64<rank_modes::NOCPU>(uint64_t x) {
+inline uint64_t popcount_u64<popcount_modes::broadword>(uint64_t x) {
     x = x - ((x >> 1) & 0x5555555555555555ULL);
     x = (x & 0x3333333333333333ULL) + ((x >> 2) & 0x3333333333333333ULL);
     x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
@@ -302,13 +270,13 @@ inline uint64_t rank_u64<rank_modes::NOCPU>(uint64_t x) {
 }
 #ifdef __SSE4_2__
 template <>
-inline uint64_t rank_u64<rank_modes::SSE4_2_POPCNT>(uint64_t x) {
-    return static_cast<uint64_t>(_mm_popcnt_u64(x));
+inline uint64_t popcount_u64<popcount_modes::builtin>(uint64_t x) {
+    return static_cast<uint64_t>(__builtin_popcountll(x));
 }
 #endif
 #ifdef __AVX2__
 // https://github.com/WojciechMula/sse-popcount/blob/master/popcnt-avx2-harley-seal.cpp
-__m256i popcount_m256i(const __m256i v) {
+inline __m256i popcount_m256i(const __m256i v) {
     static const __m256i m1 = _mm256_set1_epi8(0x55);
     static const __m256i m2 = _mm256_set1_epi8(0x33);
     static const __m256i m4 = _mm256_set1_epi8(0x0F);
@@ -318,184 +286,292 @@ __m256i popcount_m256i(const __m256i v) {
     const __m256i t3 = _mm256_add_epi8(t2, _mm256_srli_epi16(t2, 4)) & m4;
     return _mm256_sad_epu8(t3, _mm256_setzero_si256());
 }
+// https://github.com/WojciechMula/sse-popcount/blob/master/popcnt-avx512-harley-seal.cpp
+inline __m512i popcount_m512i(const __m512i v) {
+    static const __m512i m1 = _mm512_set1_epi8(0x55);
+    static const __m512i m2 = _mm512_set1_epi8(0x33);
+    static const __m512i m4 = _mm512_set1_epi8(0x0F);
+    const __m512i t1 = _mm512_sub_epi8(v, (_mm512_srli_epi16(v, 1) & m1));
+    const __m512i t2 =
+        _mm512_add_epi8(t1 & m2, (_mm512_srli_epi16(t1, 2) & m2));
+    const __m512i t3 = _mm512_add_epi8(t2, _mm512_srli_epi16(t2, 4)) & m4;
+    return _mm512_sad_epu8(t3, _mm512_setzero_si512());
+}
 #endif
 
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   PrefixSum implementations
+ *
+ * * * * * * * * * * * * * * * * */
+enum class prefixsum_modes : int {
+    loop = 0x00,
+    unrolled = 0x01,
+    parallel = 0x02,
+};
+
+#ifdef __AVX512VL__
+// Compute prefix sums for 4 words in parallel, e.g., x=(2,3,1,2) -> x=(2,5,6,8)
+inline __m256i prefixsum_m256i(__m256i x) {
+    x = _mm256_add_epi64(
+        x, _mm256_maskz_permutex_epi64(0b11111110, x, _MM_SHUFFLE(2, 1, 0, 3)));
+    x = _mm256_add_epi64(
+        x, _mm256_maskz_permutex_epi64(0b11111100, x, _MM_SHUFFLE(1, 0, 3, 2)));
+    return x;
+}
+// Compute prefix sums for 8 words in parallel
+inline __m512i prefixsum_m512i(__m512i x) {
+    static const __m512i i1 = _mm512_set_epi64(6, 5, 4, 3, 2, 1, 0, 7);
+    static const __m512i i2 = _mm512_set_epi64(5, 4, 3, 2, 1, 0, 7, 6);
+    static const __m512i i3 = _mm512_set_epi64(3, 2, 1, 0, 7, 6, 5, 4);
+    x = _mm512_add_epi64(x, _mm512_maskz_permutexvar_epi64(0b11111110, i1, x));
+    x = _mm512_add_epi64(x, _mm512_maskz_permutexvar_epi64(0b11111100, i2, x));
+    x = _mm512_add_epi64(x, _mm512_maskz_permutexvar_epi64(0b11110000, i3, x));
+    return x;
+}
+#endif
+
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   Rank256/512 approaches
+ *
+ * * * * * * * * * * * * * * * * */
+enum class rank_modes : int {
+    broadword_loop = int(popcount_modes::broadword) |  //
+                     int(prefixsum_modes::loop) << 8,
+    broadword_unrolled = int(popcount_modes::broadword) |  //
+                         int(prefixsum_modes::unrolled) << 8,
+#ifdef __SSE4_2__
+    builtin_loop = int(popcount_modes::builtin) |  //
+                   int(prefixsum_modes::loop) << 8,
+    builtin_unrolled = int(popcount_modes::builtin) |  //
+                       int(prefixsum_modes::unrolled) << 8,
+#endif
+#ifdef __AVX2__
+    avx2_unrolled = int(popcount_modes::avx2) |  //
+                    int(prefixsum_modes::unrolled) << 8,
+#endif
+#ifdef __AVX512VL__
+    avx2_parallel = int(popcount_modes::avx2) |  //
+                    int(prefixsum_modes::parallel) << 8,
+#endif
+};
+
+constexpr popcount_modes extract_popcount_mode(rank_modes m) {
+    return popcount_modes(int(m) & 0xFF);
+}
+constexpr prefixsum_modes extract_prefixsum_mode(rank_modes m) {
+    return prefixsum_modes(int(m) >> 8 & 0xFF);
+}
+
+static const std::map<rank_modes, std::string> rank_mode_map = {
+    {rank_modes::broadword_loop, "broadword_loop"},          //
+    {rank_modes::broadword_unrolled, "broadword_unrolled"},  //
+#ifdef __SSE4_2__
+    {rank_modes::builtin_loop, "builtin_loop"},          //
+    {rank_modes::builtin_unrolled, "builtin_unrolled"},  //
+#endif
+#ifdef __AVX2__
+    {rank_modes::avx2_unrolled, "avx2_unrolled"},  //
+#endif
+#ifdef __AVX512VL__
+    {rank_modes::avx2_parallel, "avx2_parallel"},  //
+#endif
+};
+
+inline std::string print_rank_mode(rank_modes mode) {
+    return rank_mode_map.find(mode)->second;
+}
+
+/* * * * * * * * * * * * * * * * * *
+ *   Rank256 implementations
+ * */
 template <rank_modes Mode>
 inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
     assert(i < 256);
-    uint64_t block = i / 64;
-    uint64_t offset = (i + 1) & 63;
-    uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
-    uint64_t rank_in_block = rank_u64<Mode>(x[block] & mask);
-    // 1. for loop
-    // uint64_t sum = 0;
-    // if (block) {
-    //     for (uint64_t b = 0; b <= block - 1; ++b) sum +=
-    //     rank_u64<Mode>(x[b]);
-    // }
-    // return sum + rank_in_block;
 
-    // 2. independent counts
-    // static uint64_t counts[4];
-    // counts[0] = 0;
-    // counts[1] = rank_u64<Mode>(x[0]);
-    // counts[2] = rank_u64<Mode>(x[0]) + rank_u64<Mode>(x[1]);
-    // counts[3] =
-    //     rank_u64<Mode>(x[0]) + rank_u64<Mode>(x[1]) + rank_u64<Mode>(x[2]);
+    static constexpr auto pcm = extract_popcount_mode(Mode);
+    static constexpr auto psm = extract_prefixsum_mode(Mode);
 
-    // 3. dependent counts: this approach is faster
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block = popcount_u64<pcm>(x[block] & mask);
+
+    if constexpr (psm == prefixsum_modes::loop) {
+        uint64_t sum = 0;
+        if (block) {
+            for (uint64_t b = 0; b <= block - 1; ++b) {
+                sum += popcount_u64<pcm>(x[b]);
+            }
+        }
+        return sum + rank_in_block;
+    } else if constexpr (psm == prefixsum_modes::unrolled) {
+        static uint64_t counts[4];
+        counts[0] = 0;
+        counts[1] = popcount_u64<pcm>(x[0]);
+        counts[2] = counts[1] + popcount_u64<pcm>(x[1]);
+        counts[3] = counts[2] + popcount_u64<pcm>(x[2]);
+        return counts[block] + rank_in_block;
+    } else {
+        assert(false);
+        return 0;
+    }
+}
+#ifdef __AVX2__
+template <>
+inline uint64_t rank_u256<rank_modes::avx2_unrolled>(const uint64_t* x,
+                                                     uint64_t i) {
+    assert(i < 256);
+
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
+
+    const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
+    const uint64_t* C = reinterpret_cast<uint64_t const*>(&mcnts);
+
     static uint64_t counts[4];
     counts[0] = 0;
-    counts[1] = rank_u64<Mode>(x[0]);
-    counts[2] = counts[1] + rank_u64<Mode>(x[1]);
-    counts[3] = counts[2] + rank_u64<Mode>(x[2]);
-
+    counts[1] = C[0];
+    counts[2] = counts[1] + C[1];
+    counts[3] = counts[2] + C[2];
     return counts[block] + rank_in_block;
 }
+#endif
 #ifdef __AVX512VL__
 template <>
-inline uint64_t rank_u256<rank_modes::AVX2_POPCNT>(const uint64_t* x,
-                                                   uint64_t i) {
+inline uint64_t rank_u256<rank_modes::avx2_parallel>(const uint64_t* x,
+                                                     uint64_t i) {
     assert(i < 256);
-    uint64_t block = i / 64;
-    uint64_t offset = (i + 1) & 63;
-    uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
 
-    // 1. if + set_epi64
-    // if (block == 0) {
-    //     return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
-    // } else if (block == 1) {
-    //     const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
-    //     const __m256i mcnts = popcount_m256i(mx);
-    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-    //     return cnts[0] + cnts[1];
-    // } else if (block == 2) {
-    //     const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
-    //     const __m256i mcnts = popcount_m256i(mx);
-    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-    //     return cnts[0] + cnts[1] + cnts[2];
-    // } else {
-    //     const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
-    //     const __m256i mcnts = popcount_m256i(mx);
-    //     uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-    //     return cnts[0] + cnts[1] + cnts[2] + cnts[3];
-    // }
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
 
-    // 2. dependent counts
-    // uint64_t rank_in_block =
-    //     rank_u64<rank_modes::SSE4_2_POPCNT>(x[block] & mask);
-    // const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i
-    // const*)x)); uint64_t const* C = reinterpret_cast<uint64_t
-    // const*>(&mcnts); static uint64_t counts[4]; counts[0] = 0; counts[1] =
-    // C[0]; counts[2] = counts[1] + C[1]; counts[3] = counts[2] + C[2]; return
-    // counts[block] + rank_in_block;
-
-    // 3. dependent counts with avx512
-    uint64_t rank_in_block =
-        rank_u64<rank_modes::SSE4_2_POPCNT>(x[block] & mask);
     const __m256i mcnts = popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
-    const __m256i msums = prefixsum_epi64(mcnts);
+    const __m256i msums = prefixsum_m256i(mcnts);
 
-    static uint64_t sums[5] = {0ULL};  // the 1st element is a sentinel
+    static uint64_t sums[5] = {0ULL};  // the head element is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
+
     return sums[block] + rank_in_block;
 }
 #endif
 
-// #ifdef __AVX512VPOPCNTDQ__
-// template <>
-// inline uint64_t rank_u256<rank_modes::AVX512_POPCNT>(const uint64_t* x,
-//                                                      uint64_t i) {
-//     assert(i < 256);
-//     uint64_t block = i / 64;
-//     uint64_t offset = (i + 1) & 63;
-//     uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
-//     if (block == 0) {
-//         return rank_u64<rank_modes::SSE4_2_POPCNT>(x[0] & mask);
-//     } else if (block == 1) {
-//         const __m256i mx = _mm256_set_epi64x(0, 0, x[1] & mask, x[0]);
-//         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-//         uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-//         return cnts[0] + cnts[1];
-//     } else if (block == 2) {
-//         const __m256i mx = _mm256_set_epi64x(0, x[2] & mask, x[1], x[0]);
-//         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-//         uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-//         return cnts[0] + cnts[1] + cnts[2];
-//     } else {
-//         const __m256i mx = _mm256_set_epi64x(x[3] & mask, x[2], x[1], x[0]);
-//         const __m256i mcnts = _mm256_popcnt_epi64(mx);
-//         uint64_t const* cnts = reinterpret_cast<uint64_t const*>(&mcnts);
-//         return cnts[0] + cnts[1] + cnts[2] + cnts[3];
-//     }
-// }
-// #endif
+/* * * * * * * * * * * * * * * * * *
+ *   Rank512 implementations
+ * */
+template <rank_modes Mode>
+inline uint64_t rank_u512(const uint64_t* x, uint64_t i) {
+    assert(i < 512);
 
-// Modes of select algorithms
-enum class select_modes {
-    NOCPU_SDSL,
-    NOCPU_BROADWORD,
-#ifdef __SSE4_2__
-    BMI1_TZCNT_SDSL,
-    SSE4_2_POPCNT_BROADWORD,
-#endif
-#ifdef __BMI2__
-    BMI2_PDEP_TZCNT,
-#endif
-#ifdef __AVX2__
-    AVX2_POPCNT,
-#endif
-#ifdef __AVX512VL__
-    AVX2_POPCNT_AVX512_PREFIX_SUM,
-    BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM,
-#endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     AVX512_POPCNT,
-    //     AVX512_POPCNT_AVX512_PREFIX_SUM,
-    // #endif
-};
+    static constexpr auto pcm = extract_popcount_mode(Mode);
+    static constexpr auto psm = extract_prefixsum_mode(Mode);
 
-static const std::map<select_modes, std::string> select_mode_map = {
-    {select_modes::NOCPU_SDSL, "NOCPU_SDSL"},            //
-    {select_modes::NOCPU_BROADWORD, "NOCPU_BROADWORD"},  //
-#ifdef __SSE4_2__
-    {select_modes::BMI1_TZCNT_SDSL, "BMI1_TZCNT_SDSL"},                  //
-    {select_modes::SSE4_2_POPCNT_BROADWORD, "SSE4_2_POPCNT_BROADWORD"},  //
-#endif
-#ifdef __BMI2__
-    {select_modes::BMI2_PDEP_TZCNT, "BMI2_PDEP_TZCNT"},  //
-#endif
-#ifdef __AVX512VL__
-    {select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM,
-     "BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM"},  //
-#endif
-#ifdef __AVX2__
-    {select_modes::AVX2_POPCNT, "AVX2_POPCNT"},  //
-#endif
-#ifdef __AVX512VL__
-    {select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM,
-     "AVX2_POPCNT_AVX512_PREFIX_SUM"},  //
-#endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     {select_modes::AVX512_POPCNT, "AVX512_POPCNT"},  //
-    //     {select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM,
-    //      "AVX512_POPCNT_AVX512_PREFIX_SUM"},  //
-    // #endif
-};
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block = popcount_u64<pcm>(x[block] & mask);
 
-inline std::string print_select_mode(select_modes mode) {
-    return select_mode_map.find(mode)->second;
+    if constexpr (psm == prefixsum_modes::loop) {
+        uint64_t sum = 0;
+        if (block) {
+            for (uint64_t b = 0; b <= block - 1; ++b) {
+                sum += popcount_u64<pcm>(x[b]);
+            }
+        }
+        return sum + rank_in_block;
+    } else if constexpr (psm == prefixsum_modes::unrolled) {
+        static uint64_t counts[8];
+        counts[0] = 0;
+        counts[1] = popcount_u64<pcm>(x[0]);
+        counts[2] = counts[1] + popcount_u64<pcm>(x[1]);
+        counts[3] = counts[2] + popcount_u64<pcm>(x[2]);
+        counts[4] = counts[3] + popcount_u64<pcm>(x[3]);
+        counts[5] = counts[4] + popcount_u64<pcm>(x[4]);
+        counts[6] = counts[5] + popcount_u64<pcm>(x[5]);
+        counts[7] = counts[6] + popcount_u64<pcm>(x[6]);
+        return counts[block] + rank_in_block;
+    } else {
+        assert(false);
+        return 0;
+    }
 }
+#ifdef __AVX2__
+template <>
+inline uint64_t rank_u512<rank_modes::avx2_unrolled>(const uint64_t* x,
+                                                     uint64_t i) {
+    assert(i < 512);
 
-template <select_modes>
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
+
+    const __m512i mcnts = popcount_m512i(_mm512_loadu_si512((__m512i const*)x));
+    const uint64_t* C = reinterpret_cast<uint64_t const*>(&mcnts);
+
+    static uint64_t counts[8];
+    counts[0] = 0;
+    counts[1] = C[0];
+    counts[2] = counts[1] + C[1];
+    counts[3] = counts[2] + C[2];
+    counts[4] = counts[3] + C[3];
+    counts[5] = counts[4] + C[4];
+    counts[6] = counts[5] + C[5];
+    counts[7] = counts[6] + C[6];
+    return counts[block] + rank_in_block;
+}
+#endif
+#ifdef __AVX512VL__
+template <>
+inline uint64_t rank_u512<rank_modes::avx2_parallel>(const uint64_t* x,
+                                                     uint64_t i) {
+    assert(i < 512);
+
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
+
+    const __m512i mcnts = popcount_m512i(_mm512_loadu_si512((__m512i const*)x));
+    const __m512i msums = prefixsum_m512i(mcnts);
+
+    static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
+
+    return sums[block] + rank_in_block;
+}
+#endif
+
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   Select64 approaches
+ *
+ * * * * * * * * * * * * * * * * */
+enum class select64_modes : int {
+    broadword_sdsl = 0x00,
+    broadword_succinct = 0x01,
+    sse4_sdsl = 0x02,
+    sse4_succinct = 0x03,
+    pdep = 0x04,
+};
+template <select64_modes>
 inline uint64_t select_u64(uint64_t, uint64_t) {
-    assert(false);  // should not come
-    return UINT64_MAX;
+    assert(false);
+    return 0;  // should not come
 }
-
 // From https://github.com/simongog/sdsl-lite/blob/master/include/sdsl/bits.hpp
 template <>
-inline uint64_t select_u64<select_modes::NOCPU_SDSL>(uint64_t x, uint64_t i) {
+inline uint64_t select_u64<select64_modes::broadword_sdsl>(uint64_t x,
+                                                           uint64_t i) {
     i += 1;
 
     uint64_t s = x, b;  // s = sum
@@ -543,12 +619,11 @@ inline uint64_t select_u64<select_modes::NOCPU_SDSL>(uint64_t x, uint64_t i) {
                       0x7FFULL];  // byte 7;
     return 0;
 }
-
 // From https://github.com/ot/succinct/blob/master/broadword.hpp
 template <>
-inline uint64_t select_u64<select_modes::NOCPU_BROADWORD>(uint64_t x,
-                                                          uint64_t k) {
-    assert(k < rank_u64<rank_modes::SSE4_2_POPCNT>(x));
+inline uint64_t select_u64<select64_modes::broadword_succinct>(uint64_t x,
+                                                               uint64_t k) {
+    assert(k < popcount_u64<popcount_modes::broadword>(x));
 
     uint64_t byte_sums = byte_counts(x) * ones_step_8;
     const uint64_t k_step_8 = k * ones_step_8;
@@ -560,12 +635,10 @@ inline uint64_t select_u64<select_modes::NOCPU_BROADWORD>(uint64_t x,
         k - (((byte_sums << 8) >> place) & uint64_t(0xFF));
     return place + select_in_byte[((x >> place) & 0xFF) | (byte_rank << 8)];
 }
-
 #ifdef __SSE4_2__
 // From https://github.com/simongog/sdsl-lite/blob/master/include/sdsl/bits.hpp
 template <>
-inline uint64_t select_u64<select_modes::BMI1_TZCNT_SDSL>(uint64_t x,
-                                                          uint64_t i) {
+inline uint64_t select_u64<select64_modes::sse4_sdsl>(uint64_t x, uint64_t i) {
     i += 1;
 
     uint64_t s = x, b;
@@ -587,167 +660,243 @@ inline uint64_t select_u64<select_modes::BMI1_TZCNT_SDSL>(uint64_t x,
     return (byte_nr << 3) +
            lt_sel[((i - 1) << 8) + ((x >> (byte_nr << 3)) & 0xFFULL)];
 }
-
 // From https://github.com/ot/succinct/blob/master/broadword.hpp
 template <>
-inline uint64_t select_u64<select_modes::SSE4_2_POPCNT_BROADWORD>(uint64_t x,
-                                                                  uint64_t k) {
-    assert(k < rank_u64<rank_modes::SSE4_2_POPCNT>(x));
+inline uint64_t select_u64<select64_modes::sse4_succinct>(uint64_t x,
+                                                          uint64_t k) {
+    assert(k < popcount_u64<popcount_modes::broadword>(x));
 
     uint64_t byte_sums = byte_counts(x) * ones_step_8;
     const uint64_t k_step_8 = k * ones_step_8;
     const uint64_t geq_k_step_8 =
         (((k_step_8 | msbs_step_8) - byte_sums) & msbs_step_8);
     const uint64_t place =
-        rank_u64<rank_modes::SSE4_2_POPCNT>(geq_k_step_8) * 8;
+        popcount_u64<popcount_modes::builtin>(geq_k_step_8) * 8;
     const uint64_t byte_rank =
         k - (((byte_sums << 8) >> place) & uint64_t(0xFF));
     return place + select_in_byte[((x >> place) & 0xFF) | (byte_rank << 8)];
 }
 #endif
-
 #ifdef __BMI2__
 template <>
-inline uint64_t select_u64<select_modes::BMI2_PDEP_TZCNT>(uint64_t x,
-                                                          uint64_t i) {
+inline uint64_t select_u64<select64_modes::pdep>(uint64_t x, uint64_t i) {
     return _tzcnt_u64(_pdep_u64(1ull << i, x));
 }
 #endif
 
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   Searching approaches
+ *
+ * * * * * * * * * * * * * * * * */
+enum class search_modes : int {
+    loop = 0x00,
+    avx512 = 0x01,
+};
+
+/* * * * * * * * * * * * * * * * * *
+ *
+ *   Select256/512 approaches
+ *
+ * * * * * * * * * * * * * * * * */
+enum class select_modes : int {
+    broadword_loop_sdsl = int(popcount_modes::broadword) |  //
+                          int(search_modes::loop) << 8 |    //
+                          int(select64_modes::broadword_sdsl) << 16,
+    broadword_loop_succinct = int(popcount_modes::broadword) |  //
+                              int(search_modes::loop) << 8 |    //
+                              int(select64_modes::broadword_succinct) << 16,
+#ifdef __SSE4_2__
+    builtin_loop_sdsl = int(popcount_modes::builtin) |  //
+                        int(search_modes::loop) << 8 |  //
+                        int(select64_modes::sse4_sdsl) << 16,
+    builtin_loop_succinct = int(popcount_modes::builtin) |  //
+                            int(search_modes::loop) << 8 |  //
+                            int(select64_modes::sse4_succinct) << 16,
+#endif
+#ifdef __BMI2__
+    builtin_loop_pdep = int(popcount_modes::builtin) |  //
+                        int(search_modes::loop) << 8 |  //
+                        int(select64_modes::pdep) << 16,
+#endif
+#ifdef __AVX512VL__
+    builtin_avx512_pdep = int(popcount_modes::builtin) |    //
+                          int(search_modes::avx512) << 8 |  //
+                          int(select64_modes::pdep) << 16,
+    avx2_avx512_pdep = int(popcount_modes::avx2) |       //
+                       int(search_modes::avx512) << 8 |  //
+                       int(select64_modes::pdep) << 16,
+#endif
+};
+
+constexpr popcount_modes extract_popcount_mode(select_modes m) {
+    return popcount_modes(int(m) & 0xFF);
+}
+constexpr search_modes extract_search_mode(select_modes m) {
+    return search_modes(int(m) >> 8 & 0xFF);
+}
+constexpr select64_modes extract_select64_mode(select_modes m) {
+    return select64_modes(int(m) >> 16 & 0xFF);
+}
+
+static const std::map<select_modes, std::string> select_mode_map = {
+    {select_modes::broadword_loop_sdsl, "broadword_loop_sdsl"},          //
+    {select_modes::broadword_loop_succinct, "broadword_loop_succinct"},  //
+#ifdef __SSE4_2__
+    {select_modes::builtin_loop_sdsl, "builtin_loop_sdsl"},          //
+    {select_modes::builtin_loop_succinct, "builtin_loop_succinct"},  //
+#endif
+#ifdef __BMI2__
+    {select_modes::builtin_loop_pdep, "builtin_loop_pdep"},  //
+#endif
+#ifdef __AVX512VL__
+    {select_modes::builtin_avx512_pdep, "builtin_avx512_pdep"},  //
+    {select_modes::avx2_avx512_pdep, "avx2_avx512_pdep"},        //
+#endif
+};
+
+inline std::string print_select_mode(select_modes mode) {
+    return select_mode_map.find(mode)->second;
+}
+
+/* * * * * * * * * * * * * * * * * *
+ *   Select256 implementations
+ * * * * * * * * * * * * * * * * */
 template <select_modes Mode>
 inline uint64_t select_u256(const uint64_t* x, uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
-
+    static constexpr auto pcm = extract_popcount_mode(Mode);
+    static constexpr auto scm = extract_search_mode(Mode);
+    static constexpr auto swm = extract_select64_mode(Mode);
 #ifdef __SSE__
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 #endif
-
-    uint64_t i = 0, cnt = 0;
-    while (i < 4) {
-        if constexpr (Mode == select_modes::NOCPU_SDSL ||
-                      Mode == select_modes::NOCPU_BROADWORD) {
-            cnt = rank_u64<rank_modes::NOCPU>(x[i]);
-        } else {
-            cnt = rank_u64<rank_modes::SSE4_2_POPCNT>(x[i]);
+    if constexpr (scm == search_modes::loop) {
+        uint64_t i = 0, cnt = 0;
+        while (i < 4) {
+            cnt = popcount_u64<pcm>(x[i]);
+            if (k < cnt) { break; }
+            k -= cnt;
+            i++;
         }
-        if (k < cnt) { break; }
-        k -= cnt;
-        i++;
+        assert(k < cnt);
+        return i * 64 + select_u64<swm>(x[i], k);
+    } else {
+        assert(false);
+        return 0;
     }
-    assert(k < cnt);
-
-    return i * 64 + select_u64<Mode>(x[i], k);
 }
-
 #ifdef __AVX512VL__
 template <>
-inline uint64_t select_u256<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(
+inline uint64_t select_u256<select_modes::builtin_avx512_pdep>(
     const uint64_t* x, uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     static uint64_t cnts[4];
-    cnts[0] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]);
-    cnts[1] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]);
-    cnts[2] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]);
-    cnts[3] = rank_u64<rank_modes::SSE4_2_POPCNT>(x[3]);
+    cnts[0] = popcount_u64<popcount_modes::builtin>(x[0]);
+    cnts[1] = popcount_u64<popcount_modes::builtin>(x[1]);
+    cnts[2] = popcount_u64<popcount_modes::builtin>(x[2]);
+    cnts[3] = popcount_u64<popcount_modes::builtin>(x[3]);
 
     const __m256i mcnts =
         _mm256_loadu_si256(reinterpret_cast<const __m256i*>(cnts));
-    const __m256i msums = prefixsum_epi64(mcnts);
+    const __m256i msums = prefixsum_m256i(mcnts);
     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
     const __mmask8 mask = _mm256_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
-    static uint64_t sums[5] = {0ULL};  // the 1st element is a sentinel
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
-    return i * 64 +
-           select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
-}
-#endif
 
-#ifdef __AVX2__
+    static uint64_t sums[5] = {0ULL};  // the head element is a sentinel
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
+
+    return i * 64 + select_u64<select64_modes::pdep>(x[i], k - sums[i]);
+}
 template <>
-inline uint64_t select_u256<select_modes::AVX2_POPCNT>(const uint64_t* x,
-                                                       uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
+inline uint64_t select_u256<select_modes::avx2_avx512_pdep>(const uint64_t* x,
+                                                            uint64_t k) {
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
-    volatile const __m256i mcnts = popcount_m256i(mx);
-    volatile uint64_t const* cnts =
-        reinterpret_cast<volatile uint64_t const*>(&mcnts);
+    const __m256i msums = prefixsum_m256i(popcount_m256i(mx));
+    const __m256i mk = _mm256_set_epi64x(k, k, k, k);
+    const __mmask8 mask = _mm256_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
+    const uint8_t i = lt_cnt[mask];
 
-    uint64_t i = 0;
-    while (i < 4) {
-        if (k < cnts[i]) { break; }
-        k -= cnts[i];
-        i++;
-    }
-    assert(k < cnts[i]);
+    static uint64_t sums[5] = {0ULL};  // the head element is a sentinel
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
 
-    return i * 64 + select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
+    return i * 64 + select_u64<select64_modes::pdep>(x[i], k - sums[i]);
 }
 #endif
+
+/* * * * * * * * * * * * * * * * * *
+ *   Select512 implementations
+ * * * * * * * * * * * * * * * * */
+template <select_modes Mode>
+inline uint64_t select_u512(const uint64_t* x, uint64_t k) {
+    static constexpr auto pcm = extract_popcount_mode(Mode);
+    static constexpr auto scm = extract_search_mode(Mode);
+    static constexpr auto swm = extract_select64_mode(Mode);
+#ifdef __SSE__
+    _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
+#endif
+    if constexpr (scm == search_modes::loop) {
+        uint64_t i = 0, cnt = 0;
+        while (i < 8) {
+            cnt = popcount_u64<pcm>(x[i]);
+            if (k < cnt) { break; }
+            k -= cnt;
+            i++;
+        }
+        assert(k < cnt);
+        return i * 64 + select_u64<swm>(x[i], k);
+    } else {
+        assert(false);
+        return 0;
+    }
+}
 #ifdef __AVX512VL__
 template <>
-inline uint64_t select_u256<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(
+inline uint64_t select_u512<select_modes::builtin_avx512_pdep>(
     const uint64_t* x, uint64_t k) {
-    assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
-    const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x));
-    const __m256i msums = prefixsum_epi64(popcount_m256i(mx));
-    const __m256i mk = _mm256_set_epi64x(k, k, k, k);
-    const __mmask8 mask = _mm256_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
+
+    static uint64_t cnts[8];
+    cnts[0] = popcount_u64<popcount_modes::builtin>(x[0]);
+    cnts[1] = popcount_u64<popcount_modes::builtin>(x[1]);
+    cnts[2] = popcount_u64<popcount_modes::builtin>(x[2]);
+    cnts[3] = popcount_u64<popcount_modes::builtin>(x[3]);
+    cnts[4] = popcount_u64<popcount_modes::builtin>(x[4]);
+    cnts[5] = popcount_u64<popcount_modes::builtin>(x[5]);
+    cnts[6] = popcount_u64<popcount_modes::builtin>(x[6]);
+    cnts[7] = popcount_u64<popcount_modes::builtin>(x[7]);
+
+    const __m512i mcnts =
+        _mm512_loadu_si512(reinterpret_cast<const __m512i*>(cnts));
+    const __m512i msums = prefixsum_m512i(mcnts);
+    const __m512i mk = _mm512_set_epi64(k, k, k, k, k, k, k, k);
+    const __mmask8 mask = _mm512_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
-    static uint64_t sums[5] = {0ULL};  // the 1st element is a sentinel
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
-    return i * 64 +
-           select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
+
+    static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
+
+    return i * 64 + select_u64<select64_modes::pdep>(x[i], k - sums[i]);
+}
+template <>
+inline uint64_t select_u512<select_modes::avx2_avx512_pdep>(const uint64_t* x,
+                                                            uint64_t k) {
+    _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
+
+    const __m512i mx = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(x));
+    const __m512i msums = prefixsum_m512i(popcount_m512i(mx));
+    const __m512i mk = _mm512_set_epi64(k, k, k, k, k, k, k, k);
+    const __mmask8 mask = _mm512_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
+    const uint8_t i = lt_cnt[mask];
+
+    static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
+
+    return i * 64 + select_u64<select64_modes::pdep>(x[i], k - sums[i]);
 }
 #endif
-
-// #ifdef __AVX512VPOPCNTDQ__
-// template <>
-// inline uint64_t select_u256<select_modes::AVX512_POPCNT>(const uint64_t* x,
-//                                                          uint64_t k) {
-//     assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
-//     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
-
-//     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const
-//     __m256i*>(x)); volatile const __m256i mcnts = _mm256_popcnt_epi64(mx);
-//     volatile uint64_t const* cnts =
-//         reinterpret_cast<volatile uint64_t const*>(&mcnts);
-
-//     uint64_t i = 0;
-//     while (i < 4) {
-//         if (k < cnts[i]) { break; }
-//         k -= cnts[i];
-//         i++;
-//     }
-//     assert(k < cnts[i]);
-
-//     return i * 64 + select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k);
-// }
-// template <>
-// inline uint64_t select_u256<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(
-//     const uint64_t* x, uint64_t k) {
-//     assert(k < rank_u256<rank_modes::SSE4_2_POPCNT>(x, 255));
-//     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
-
-//     const __m256i mx = _mm256_loadu_si256(reinterpret_cast<const
-//     __m256i*>(x)); const __m256i msums =
-//     prefixsum_epi64(_mm256_popcnt_epi64(mx));
-
-//     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
-//     const __mmask8 mask = _mm256_cmp_epi64_mask(msums, mk, 2);  // 1 if mc <=
-//     mk const uint8_t i = lt_cnt[mask];
-
-//     static uint64_t sums[5] = {0ULL};  // the 1st elements is a sentinel
-//     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
-
-//     return i * 64 +
-//            select_u64<select_modes::BMI2_PDEP_TZCNT>(x[i], k - sums[i]);
-// }
-// #endif
 
 }  // namespace dyrs

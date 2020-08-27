@@ -24,11 +24,11 @@ struct test<sizeof(logs2) / sizeof(logs2[0]), PrefixSums, RankMode,
 };
 
 TEST_CASE("test avx2_mutable_bitvector") {
-    test<0, avx2::segment_tree, rank_modes::SSE4_2_POPCNT,
-         select_modes::BMI2_PDEP_TZCNT>::run();
+    test<0, avx2::segment_tree, rank_modes::builtin_unrolled,
+         select_modes::builtin_loop_pdep>::run();
 }
 
 TEST_CASE("test avx512_mutable_bitvector") {
-    test<0, avx512::segment_tree, rank_modes::SSE4_2_POPCNT,
-         select_modes::BMI2_PDEP_TZCNT>::run();
+    test<0, avx512::segment_tree, rank_modes::builtin_unrolled,
+         select_modes::builtin_loop_pdep>::run();
 }

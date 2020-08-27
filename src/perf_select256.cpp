@@ -42,7 +42,8 @@ void test(const double density) {
 
         for (uint64_t i = 0; i < num_queries;) {
             const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
-            const uint64_t r = rank_u256<rank_modes::NOCPU>(x, 255);
+            const uint64_t r =
+                rank_u256<rank_modes::broadword_unrolled>(x, 255);
             if (r != 0) { queries[i++] = {x, hasher.next() % r}; }
         }
 
@@ -125,42 +126,30 @@ int main(int argc, char** argv) {
     auto mode = parser.get<std::string>("mode");
     auto density = parser.get<double>("density");
 
-    if (mode == "nocpu_sdsl") {
-        test<select_modes::NOCPU_SDSL>(density);
-    } else if (mode == "nocpu_broadword") {
-        test<select_modes::NOCPU_BROADWORD>(density);
+    if (mode == "broadword_loop_sdsl") {
+        test<select_modes::broadword_loop_sdsl>(density);
+    } else if (mode == "broadword_loop_succinct") {
+        test<select_modes::broadword_loop_succinct>(density);
     }
 #ifdef __SSE4_2__
-    else if (mode == "bmi1_sdsl") {
-        test<select_modes::BMI1_TZCNT_SDSL>(density);
-    } else if (mode == "sse4_2_broadword") {
-        test<select_modes::SSE4_2_POPCNT_BROADWORD>(density);
+    else if (mode == "builtin_loop_sdsl") {
+        test<select_modes::builtin_loop_sdsl>(density);
+    } else if (mode == "builtin_loop_succinct") {
+        test<select_modes::builtin_loop_succinct>(density);
     }
 #endif
 #ifdef __BMI2__
-    else if (mode == "bmi2_pt") {
-        test<select_modes::BMI2_PDEP_TZCNT>(density);
+    else if (mode == "builtin_loop_pdep") {
+        test<select_modes::builtin_loop_pdep>(density);
     }
 #endif
 #ifdef __AVX512VL__
-    else if (mode == "bmi2_pt_avx512_ps") {
-        test<select_modes::BMI2_PDEP_TZCNT_AVX512_PREFIX_SUM>(density);
-    } else if (mode == "avx2_pc_avx512_ps") {
-        test<select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>(density);
+    else if (mode == "builtin_avx512_pdep") {
+        test<select_modes::builtin_avx512_pdep>(density);
+    } else if (mode == "avx2_avx512_pdep") {
+        test<select_modes::avx2_avx512_pdep>(density);
     }
 #endif
-#ifdef __AVX2__
-    else if (mode == "avx2_pc") {
-        test<select_modes::AVX2_POPCNT>(density);
-    }
-#endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     else if (mode == "avx512_pc") {
-    //         test<select_modes::AVX512_POPCNT>(density);
-    //     } else if (mode == "avx512_pc_avx512_ps") {
-    //         test<select_modes::AVX512_POPCNT_AVX512_PREFIX_SUM>(density);
-    //     }
-    // #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;

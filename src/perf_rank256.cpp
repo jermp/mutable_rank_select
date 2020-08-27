@@ -124,24 +124,28 @@ int main(int argc, char** argv) {
     auto mode = parser.get<std::string>("mode");
     auto density = parser.get<double>("density");
 
-    if (mode == "nocpu") {
-        test<rank_modes::NOCPU>(density);
+    if (mode == "broadword_loop") {
+        test<rank_modes::broadword_loop>(density);
+    } else if (mode == "broadword_unrolled") {
+        test<rank_modes::broadword_unrolled>(density);
     }
 #ifdef __SSE4_2__
-    else if (mode == "sse4_2") {
-        test<rank_modes::SSE4_2_POPCNT>(density);
+    else if (mode == "builtin_loop") {
+        test<rank_modes::builtin_loop>(density);
+    } else if (mode == "builtin_unrolled") {
+        test<rank_modes::builtin_unrolled>(density);
     }
 #endif
 #ifdef __AVX2__
-    else if (mode == "avx2") {
-        test<rank_modes::AVX2_POPCNT>(density);
+    else if (mode == "avx2_unrolled") {
+        test<rank_modes::avx2_unrolled>(density);
     }
 #endif
-    // #ifdef __AVX512VPOPCNTDQ__
-    //     else if (mode == "avx512") {
-    //         test<rank_modes::AVX512_POPCNT>(density);
-    //     }
-    // #endif
+#ifdef __AVX512VL__
+    else if (mode == "avx2_parallel") {
+        test<rank_modes::avx2_parallel>(density);
+    }
+#endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;

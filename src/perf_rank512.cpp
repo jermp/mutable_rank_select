@@ -15,34 +15,33 @@ static constexpr uint32_t num_queries = 10000;
 static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 
-static constexpr std::array<uint64_t, 25> sizes = {
-    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+static constexpr std::array<uint64_t, 24> sizes = {
+    1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
+    1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
+    1ULL << 21, 1ULL << 22, 1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26,
+    1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 };
 
+template <rank_modes Mode>
 void test(const double density) {
     std::vector<uint64_t> bits(sizes.back() / 64);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
     std::cout << "# number of ones: " << num_ones << " ("
               << num_ones / double(sizes.back()) << ")" << std::endl;
 
-    std::string json("{\"type\":\"builtin\", ");
+    std::string json("{\"type\":\"" + print_rank_mode(Mode) + "\", ");
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
 
     for (const uint64_t n : sizes) {
-        // !! Create queries in the same manner as rank256 !!
         splitmix64 hasher(query_seed);
 
-        const auto num_buckets = n / 256;
+        const auto num_buckets = n / 512;
         std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
 
         for (uint64_t i = 0; i < num_queries; i++) {
-            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
-            queries[i] = {x, hasher.next() % 64};
+            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 512 / 64];
+            queries[i] = {x, hasher.next() % 512};
         }
 
         essentials::timer_type t;
@@ -53,10 +52,9 @@ void test(const double density) {
             for (int run = 0; run != runs; run++) {
                 t.start();
                 for (uint64_t i = 0; i < num_queries; i++) {
-                    const uint64_t x = *queries[i].first;
+                    const uint64_t* x = queries[i].first;
                     const uint64_t k = queries[i].second;
-                    const uint64_t mask = (k != 0) * (1ULL << k) - 1;
-                    tmp += popcount_u64<popcount_modes::builtin>(x & mask);
+                    tmp += rank_u512<Mode>(x, k);
                 }
                 t.stop();
             }
@@ -118,10 +116,39 @@ void test(const double density) {
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
+    parser.add("mode", "Mode of rank algorithm.");
     parser.add("density", "Density of ones (in [0,1]).");
     if (!parser.parse()) return 1;
 
-    test(parser.get<double>("density"));
+    auto mode = parser.get<std::string>("mode");
+    auto density = parser.get<double>("density");
+
+    if (mode == "broadword_loop") {
+        test<rank_modes::broadword_loop>(density);
+    } else if (mode == "broadword_unrolled") {
+        test<rank_modes::broadword_unrolled>(density);
+    }
+#ifdef __SSE4_2__
+    else if (mode == "builtin_loop") {
+        test<rank_modes::builtin_loop>(density);
+    } else if (mode == "builtin_unrolled") {
+        test<rank_modes::builtin_unrolled>(density);
+    }
+#endif
+#ifdef __AVX2__
+    else if (mode == "avx2_unrolled") {
+        test<rank_modes::avx2_unrolled>(density);
+    }
+#endif
+#ifdef __AVX512VL__
+    else if (mode == "avx2_parallel") {
+        test<rank_modes::avx2_parallel>(density);
+    }
+#endif
+    else {
+        std::cout << "unknown mode \"" << mode << "\"" << std::endl;
+        return 1;
+    }
 
     return 0;
 }

@@ -21,13 +21,13 @@ struct rank_select_modes {
     static constexpr select_modes select_mode = SelectMode;
 };
 
-typedef rank_select_modes<rank_modes::SSE4_2_POPCNT,
-                          select_modes::BMI2_PDEP_TZCNT>
+typedef rank_select_modes<rank_modes::builtin_unrolled,
+                          select_modes::builtin_loop_pdep>
     rank_select_modes_1;
 
 #ifdef __AVX512VL__
-typedef rank_select_modes<rank_modes::SSE4_2_POPCNT,
-                          select_modes::AVX2_POPCNT_AVX512_PREFIX_SUM>
+typedef rank_select_modes<rank_modes::builtin_unrolled,
+                          select_modes::avx2_avx512_pdep>
     rank_select_modes_2;
 #endif
 

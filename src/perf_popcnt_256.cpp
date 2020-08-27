@@ -27,41 +27,40 @@ static constexpr std::array<uint64_t, 1> sizes = {
 //     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 // };
 
-enum class popcount_modes { BROADWORD, BUILTIN, AVX2 };
-
 template <popcount_modes>
-uint64_t popcount_256(const uint64_t*) {
+inline uint64_t popcount_256(const uint64_t*) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-uint64_t popcount_256<popcount_modes::BROADWORD>(const uint64_t* x) {
+inline uint64_t popcount_256<popcount_modes::broadword>(const uint64_t* x) {
     uint64_t tmp = 0;
-    tmp += rank_u64<rank_modes::NOCPU>(x[0]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[1]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[2]);
-    tmp += rank_u64<rank_modes::NOCPU>(x[3]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[0]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[1]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[2]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[3]);
     return tmp;
 }
 template <>
-uint64_t popcount_256<popcount_modes::BUILTIN>(const uint64_t* x) {
+inline uint64_t popcount_256<popcount_modes::builtin>(const uint64_t* x) {
     uint64_t tmp = 0;
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[0]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[1]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[2]);
-    tmp += rank_u64<rank_modes::SSE4_2_POPCNT>(x[3]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[0]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[1]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[2]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[3]);
     return tmp;
 }
-
+#ifdef __AVX2__
 template <popcount_modes>
-__m256i popcount_256(const __m256i) {
+inline __m256i popcount_256(const __m256i) {
     assert(false);  // should not come
     return __m256i{};
 }
 template <>
-__m256i popcount_256<popcount_modes::AVX2>(const __m256i x) {
+inline __m256i popcount_256<popcount_modes::avx2>(const __m256i x) {
     return popcount_m256i(x);
 }
+#endif
 
 template <popcount_modes Mode>
 void test(std::string type) {
@@ -88,7 +87,7 @@ void test(std::string type) {
         double min = 0.0, max = 0.0, avg = 0.0;
 
         auto measure = [&]() {
-            if constexpr (Mode != popcount_modes::AVX2) {
+            if constexpr (Mode != popcount_modes::avx2) {
                 uint64_t tmp = 0;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
@@ -110,11 +109,9 @@ void test(std::string type) {
                     }
                     t.stop();
                 }
-                std::cout << "# ignore: "  //
-                          << _mm256_extract_epi64(tmp, 0)
-                          << _mm256_extract_epi64(tmp, 1)
-                          << _mm256_extract_epi64(tmp, 2)
-                          << _mm256_extract_epi64(tmp, 3) << std::endl;
+                uint64_t tmp2[4];
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(tmp2), tmp);
+                std::cout << "# ignore: " << tmp2[0] << std::endl;
             }
         };
 
@@ -179,22 +176,21 @@ int main(int argc, char** argv) {
     auto mode = parser.get<std::string>("mode");
 
     if (mode == "broadword") {
-        test<popcount_modes::BROADWORD>(mode);
+        test<popcount_modes::broadword>(mode);
     }
 #ifdef __SSE4_2__
     else if (mode == "builtin") {
-        test<popcount_modes::BUILTIN>(mode);
+        test<popcount_modes::builtin>(mode);
     }
 #endif
 #ifdef __AVX2__
     else if (mode == "avx2") {
-        test<popcount_modes::AVX2>(mode);
+        test<popcount_modes::avx2>(mode);
     }
 #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;
     }
-
     return 0;
 }

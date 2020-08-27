@@ -17,49 +17,52 @@ static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.5;
 
 static constexpr std::array<uint64_t, 1> sizes = {
-    1ULL << 8,
+    1ULL << 9,
 };
-// static constexpr std::array<uint64_t, 25> sizes = {
-//     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-//     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-//     1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-//     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-//     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+// static constexpr std::array<uint64_t, 24> sizes = {
+//     1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
+//     1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
+//     1ULL << 21, 1ULL << 22, 1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26,
+//     1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 // };
 
 template <prefixsum_modes>
-inline uint64_t prefixsum_256(const uint64_t*, uint64_t) {
+inline uint64_t prefixsum_512(const uint64_t*, uint64_t) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::loop>(const uint64_t* x,
+inline uint64_t prefixsum_512<prefixsum_modes::loop>(const uint64_t* x,
                                                      uint64_t k) {
     uint64_t sum = 0;
     for (uint64_t i = 0; i <= k; i++) { sum += x[i]; }
     return sum;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::unrolled>(const uint64_t* x,
+inline uint64_t prefixsum_512<prefixsum_modes::unrolled>(const uint64_t* x,
                                                          uint64_t k) {
-    static uint64_t sums[4] = {};
+    static uint64_t sums[8] = {};
     sums[0] = x[0];
     sums[1] = sums[0] + x[1];
     sums[2] = sums[1] + x[2];
     sums[3] = sums[2] + x[3];
+    sums[4] = sums[3] + x[4];
+    sums[5] = sums[4] + x[5];
+    sums[6] = sums[5] + x[6];
+    sums[7] = sums[6] + x[7];
     return sums[k];
 }
 #ifdef __AVX512VL__
 template <prefixsum_modes>
-inline uint64_t prefixsum_256(__m256i, uint64_t) {
+inline uint64_t prefixsum_512(__m512i, uint64_t) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::parallel>(__m256i x,
+inline uint64_t prefixsum_512<prefixsum_modes::parallel>(__m512i x,
                                                          uint64_t k) {
-    static uint64_t sums[4] = {};
-    _mm256_storeu_si256((__m256i*)(sums), prefixsum_m256i(x));
+    static uint64_t sums[8] = {};
+    _mm512_storeu_si512((__m512i*)(sums), prefixsum_m512i(x));
     return sums[k];
 }
 #endif
@@ -78,11 +81,11 @@ void test(std::string type) {
     for (const uint64_t n : sizes) {
         splitmix64 hasher(query_seed);
 
-        const auto num_buckets = n / 256;
+        const auto num_buckets = n / 512;
         std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
 
         for (uint64_t i = 0; i < num_queries; i++) {
-            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
+            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 512 / 64];
             queries[i] = {x, hasher.next() % 4};
         }
 
@@ -97,7 +100,7 @@ void test(std::string type) {
                     for (uint64_t i = 0; i < num_queries; i++) {
                         const uint64_t* x = queries[i].first;
                         const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(x, k);
+                        tmp += prefixsum_512<Mode>(x, k);
                     }
                     t.stop();
                 }
@@ -107,8 +110,8 @@ void test(std::string type) {
                     for (uint64_t i = 0; i < num_queries; i++) {
                         const uint64_t* x = queries[i].first;
                         const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x), k);
+                        tmp += prefixsum_512<Mode>(
+                            _mm512_loadu_si512((__m512i const*)x), k);
                     }
                     t.stop();
                 }

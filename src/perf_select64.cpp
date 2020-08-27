@@ -29,7 +29,7 @@ void test(const double density) {
     std::cout << "# number of ones: " << num_ones << " ("
               << num_ones / double(sizes.back()) << ")" << std::endl;
 
-    std::string json("{\"type\":\"BMI2_PDEP_TZCNT_64\", ");
+    std::string json("{\"type\":\"pdep\", ");
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
 
@@ -42,7 +42,7 @@ void test(const double density) {
 
         for (uint64_t i = 0; i < num_queries;) {
             const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
-            const uint64_t r = rank_u64<rank_modes::SSE4_2_POPCNT>(*x);
+            const uint64_t r = popcount_u64<popcount_modes::builtin>(*x);
             if (r != 0) { queries[i++] = {x, hasher.next() % r}; }
         }
 
@@ -56,7 +56,7 @@ void test(const double density) {
                 for (uint64_t i = 0; i < num_queries; i++) {
                     const uint64_t x = *queries[i].first;
                     const uint64_t k = queries[i].second;
-                    tmp += select_u64<select_modes::BMI2_PDEP_TZCNT>(x, k);
+                    tmp += select_u64<select64_modes::pdep>(x, k);
                 }
                 t.stop();
             }
