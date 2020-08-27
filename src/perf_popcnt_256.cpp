@@ -14,7 +14,7 @@ static constexpr int runs = 100;
 static constexpr uint32_t num_queries = 1000000;
 static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
-static constexpr double density = 0.5;
+static constexpr double density = 0.3;
 
 static constexpr std::array<uint64_t, 1> sizes = {
     1ULL << 8,
