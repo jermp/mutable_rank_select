@@ -27,6 +27,11 @@ enum class rank_modes : int {
 #ifdef __AVX512VL__
     avx2_parallel = int(popcount_modes::avx2) |  //
                     int(prefixsum_modes::parallel) << 8,
+
+    avx512_unrolled = int(popcount_modes::avx512) |  //
+                      int(prefixsum_modes::unrolled) << 8,
+    avx512_parallel = int(popcount_modes::avx512) |  //
+                      int(prefixsum_modes::parallel) << 8,
 #endif
 };
 
@@ -131,7 +136,6 @@ inline uint64_t rank_u256<rank_modes::avx2_parallel>(const uint64_t* x,
 
     static uint64_t sums[5] = {0ULL};  // the head element is a sentinel
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
-
     return sums[block] + rank_in_block;
 }
 #endif
@@ -177,8 +181,8 @@ inline uint64_t rank_u512(const uint64_t* x, uint64_t i) {
 }
 #ifdef __AVX512VL__
 template <>
-inline uint64_t rank_u512<rank_modes::avx2_unrolled>(const uint64_t* x,
-                                                     uint64_t i) {
+inline uint64_t rank_u512<rank_modes::avx512_unrolled>(const uint64_t* x,
+                                                       uint64_t i) {
     assert(i < 512);
 
     const uint64_t block = i / 64;
@@ -201,11 +205,9 @@ inline uint64_t rank_u512<rank_modes::avx2_unrolled>(const uint64_t* x,
     counts[7] = counts[6] + C[6];
     return counts[block] + rank_in_block;
 }
-#endif
-#ifdef __AVX512VL__
 template <>
-inline uint64_t rank_u512<rank_modes::avx2_parallel>(const uint64_t* x,
-                                                     uint64_t i) {
+inline uint64_t rank_u512<rank_modes::avx512_parallel>(const uint64_t* x,
+                                                       uint64_t i) {
     assert(i < 512);
 
     const uint64_t block = i / 64;
@@ -219,7 +221,6 @@ inline uint64_t rank_u512<rank_modes::avx2_parallel>(const uint64_t* x,
 
     static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
-
     return sums[block] + rank_in_block;
 }
 #endif

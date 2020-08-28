@@ -33,11 +33,12 @@ void test_node() {
     }
 
     auto update = [&](int8_t delta) {
+        bool sign = delta >> 7;
         essentials::logger("testing update(" + std::to_string(delta) + ")...");
         for (uint64_t run = 0; run != 100; ++run) {
             uint64_t expected = 0;
             for (uint64_t i = 0; i != Node::fanout; ++i) {
-                node.update(i, delta);
+                node.update(i, sign);
                 uint64_t got = node.sum(i);
                 A[i] += delta;
                 expected += A[i];

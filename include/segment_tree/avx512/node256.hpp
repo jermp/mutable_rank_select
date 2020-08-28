@@ -9,7 +9,7 @@
 namespace dyrs::avx512 {
 
 struct node256 {
-    typedef uint32_t key_type;  // each key should be an integer in [0,2^17]
+    typedef uint32_t key_type;
     typedef uint32_t summary_type;
     static constexpr uint64_t fanout = 256;
     static constexpr uint64_t segment_size = 16;

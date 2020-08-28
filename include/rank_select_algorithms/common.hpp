@@ -314,7 +314,7 @@ enum class prefixsum_modes : int {
 };
 
 #ifdef __AVX512VL__
-// Compute prefix sums for 4 words in parallel, e.g., x=(2,3,1,2) -> x=(2,5,6,8)
+// Compute prefix sums for 4 words in parallel
 inline __m256i prefixsum_m256i(__m256i x) {
     x = _mm256_add_epi64(
         x, _mm256_maskz_permutex_epi64(0b11111110, x, _MM_SHUFFLE(2, 1, 0, 3)));
