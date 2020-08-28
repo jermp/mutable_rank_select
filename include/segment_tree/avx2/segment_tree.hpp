@@ -24,7 +24,6 @@ struct segment_tree {
     segment_tree()
         : m_size(0), m_num_nodes_per_level(nullptr), m_ptr(nullptr) {}
 
-    /* input is an intger array where each value is in [0,2^8] */
     void build(uint16_t const* input, uint64_t n) {
         assert(n > 0 and n <= (1ULL << 24));
         m_size = n;
@@ -33,7 +32,6 @@ struct segment_tree {
         uint64_t total_bytes = 0;
         int h = Height;
 
-        /* Height is always at most 4 for bitvectors up to 2^32 bits*/
         {
             m = std::ceil(static_cast<double>(m) / node128::fanout);
             num_nodes_per_level[--h] = m;
@@ -79,7 +77,7 @@ struct segment_tree {
                 for (uint64_t j = 0; j != node128::fanout and base + j < n;
                      ++j) {
                     uint16_t val = input[base + j];
-                    assert(val <= 256);
+                    assert(val <= 512);
                     tmp[j] = val;
                 }
                 node128::build(tmp.data(), out);

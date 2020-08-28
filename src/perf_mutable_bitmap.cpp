@@ -29,9 +29,7 @@ struct test {
             const uint64_t n = sizes[I];
             static constexpr uint64_t height =
                 PrefixSums<1>::height((n + 255) / 256);
-            mutable_bitvector<PrefixSums<height>, RankSelect::rank_mode,
-                              RankSelect::select_mode>
-                vec;
+            mutable_bitmap<PrefixSums<height>, RankSelect> vec;
             uint64_t num_ones = 0;
             {
                 std::vector<uint64_t> bits((n + 63) / 64);
@@ -154,8 +152,7 @@ template <template <uint32_t> typename PrefixSums, typename RankSelect>
 void perf_test(std::string const& operation, double density,
                std::string const& name, int i) {
     std::vector<uint64_t> queries(num_queries);
-    auto str = mutable_bitvector<PrefixSums<1>, RankSelect::rank_mode,
-                                 RankSelect::select_mode>::name();
+    auto str = mutable_bitmap<PrefixSums<1>, RankSelect>::name();
     if (name != "") str = name;
     std::string json("{\"type\":\"" + str + "\", ");
     if (i != -1) json += "\"num_bits\":\"" + std::to_string(sizes[i]) + "\", ";
@@ -196,19 +193,19 @@ int main(int argc, char** argv) {
     if (parser.parsed("i")) i = parser.get<int>("i");
 
     if (type == "avx2_1") {
-        perf_test<avx2::segment_tree, rank_select_modes_1>(operation, density,
-                                                           name, i);
+        perf_test<avx2::segment_tree, block256_type_1>(operation, density, name,
+                                                       i);
     } else if (type == "avx512_1") {
-        perf_test<avx512::segment_tree, rank_select_modes_1>(operation, density,
-                                                             name, i);
+        perf_test<avx512::segment_tree, block256_type_1>(operation, density,
+                                                         name, i);
 
 #ifdef __AVX512VL__
     } else if (type == "avx2_2") {
-        perf_test<avx2::segment_tree, rank_select_modes_2>(operation, density,
-                                                           name, i);
+        perf_test<avx2::segment_tree, block256_type_2>(operation, density, name,
+                                                       i);
     } else if (type == "avx512_2") {
-        perf_test<avx512::segment_tree, rank_select_modes_2>(operation, density,
-                                                             name, i);
+        perf_test<avx512::segment_tree, block256_type_2>(operation, density,
+                                                         name, i);
 #endif
 
     } else {

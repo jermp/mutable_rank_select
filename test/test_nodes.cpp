@@ -2,36 +2,36 @@
 #include "test_node.hpp"
 
 TEST_CASE("test avx2::node128") {
-    static constexpr uint64_t max_int = 1ULL << 8;
-    test_node<avx2::node128, max_int>();
+    test_node<avx2::node128, 1ULL << 8>();
+    test_node<avx2::node128, 1ULL << 9>();
 }
 
 TEST_CASE("test avx2::node64") {
-    static constexpr uint64_t max_int = 1ULL << 15;
-    test_node<avx2::node64, max_int>();
+    test_node<avx2::node64, 1ULL << 15>();
+    test_node<avx2::node64, 1ULL << 16>();
 }
 
 TEST_CASE("test avx2::node64") {
-    static constexpr uint64_t max_int = 1ULL << 21;
-    test_node<avx2::node64, max_int>();
+    test_node<avx2::node64, 1ULL << 21>();
+    test_node<avx2::node64, 1ULL << 22>();
 }
 
 TEST_CASE("test avx2::node32") {
-    static constexpr uint64_t max_int = 1ULL << 27;
-    test_node<avx2::node32, max_int>();
+    test_node<avx2::node32, 1ULL << 27>();
+    test_node<avx2::node32, 1ULL << 28>();
 }
 
 TEST_CASE("test avx512::node512") {
-    static constexpr uint64_t max_int = 1ULL << 8;
-    test_node<avx512::node512, max_int>();
+    test_node<avx512::node512, 1ULL << 8>();
+    test_node<avx512::node512, 1ULL << 9>();
 }
 
 TEST_CASE("test avx512::node256") {
-    static constexpr uint64_t max_int = 1ULL << 17;
-    test_node<avx512::node256, max_int>();
+    test_node<avx512::node256, 1ULL << 17>();
+    test_node<avx512::node256, 1ULL << 18>();
 }
 
 TEST_CASE("test avx512::node128") {
-    static constexpr uint64_t max_int = 1ULL << 25;
-    test_node<avx512::node128, max_int>();
+    test_node<avx512::node128, 1ULL << 25>();
+    test_node<avx512::node128, 1ULL << 26>();
 }
