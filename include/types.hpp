@@ -1,14 +1,14 @@
 #pragma once
 
-#include "avx2/node128.hpp"
-#include "avx2/node64.hpp"
-#include "avx2/node32.hpp"
-#include "avx2/segment_tree.hpp"
+#include "segment_tree/avx2/node128.hpp"
+#include "segment_tree/avx2/node64.hpp"
+#include "segment_tree/avx2/node32.hpp"
+#include "segment_tree/avx2/segment_tree.hpp"
 
-#include "avx512/node512.hpp"
-#include "avx512/node256.hpp"
-#include "avx512/node128.hpp"
-#include "avx512/segment_tree.hpp"
+#include "segment_tree/avx512/node512.hpp"
+#include "segment_tree/avx512/node256.hpp"
+#include "segment_tree/avx512/node128.hpp"
+#include "segment_tree/avx512/segment_tree.hpp"
 
 #include "mutable_bitvector.hpp"
 #include "mutable_bitvector_64.hpp"

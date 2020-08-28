@@ -6,7 +6,8 @@
 #include "../external/cmd_line_parser/include/parser.hpp"
 
 #include "util.hpp"
-#include "rs256/algorithms.hpp"
+#include "rank_select_algorithms/rank.hpp"
+#include "rank_select_algorithms/select.hpp"
 
 using namespace dyrs;
 

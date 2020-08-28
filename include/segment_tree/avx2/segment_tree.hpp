@@ -4,7 +4,7 @@
 #include <cmath>
 #include <vector>
 
-#include "../util.hpp"
+#include "util.hpp"
 #include "segment_tree_macros.hpp"
 
 namespace dyrs::avx2 {

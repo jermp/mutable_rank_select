@@ -6,7 +6,8 @@
 #include "../external/cmd_line_parser/include/parser.hpp"
 
 #include "util.hpp"
-#include "rs256/algorithms.hpp"
+#include "rank_select_algorithms/rank.hpp"
+#include "rank_select_algorithms/select.hpp"
 
 using namespace dyrs;
 
@@ -57,14 +58,14 @@ inline uint64_t popcount_512<popcount_modes::builtin>(const uint64_t* x) {
     tmp += popcount_u64<popcount_modes::builtin>(x[7]);
     return tmp;
 }
-#ifdef __AVX2__
+#ifdef __AVX512VL__
 template <popcount_modes>
 inline __m512i popcount_512(const __m512i) {
     assert(false);  // should not come
     return __m512i{};
 }
 template <>
-inline __m512i popcount_512<popcount_modes::avx2>(const __m512i x) {
+inline __m512i popcount_512<popcount_modes::avx512>(const __m512i x) {
     return popcount_m512i(x);
 }
 #endif
@@ -94,7 +95,7 @@ void test(std::string type) {
         double min = 0.0, max = 0.0, avg = 0.0;
 
         auto measure = [&]() {
-            if constexpr (Mode != popcount_modes::avx2) {
+            if constexpr (Mode != popcount_modes::avx512) {
                 uint64_t tmp = 0;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
@@ -190,9 +191,9 @@ int main(int argc, char** argv) {
         test<popcount_modes::builtin>(mode);
     }
 #endif
-#ifdef __AVX2__
-    else if (mode == "avx2") {
-        test<popcount_modes::avx2>(mode);
+#ifdef __AVX512VL__
+    else if (mode == "avx512") {
+        test<popcount_modes::avx512>(mode);
     }
 #endif
     else {

@@ -4,20 +4,20 @@
 
 #include "immintrin.h"
 #include "tables.hpp"
-#include "../util.hpp"
+#include "util.hpp"
 
 namespace dyrs::avx512 {
 
-struct node128 {
-    typedef uint32_t key_type;  // each key should be an integer in [0,2^25]
-    typedef uint64_t summary_type;
-    static constexpr uint64_t fanout = 128;
+struct node256 {
+    typedef uint32_t key_type;  // each key should be an integer in [0,2^17]
+    typedef uint32_t summary_type;
+    static constexpr uint64_t fanout = 256;
     static constexpr uint64_t segment_size = 16;
-    static constexpr uint64_t num_segments = 8;
+    static constexpr uint64_t num_segments = 16;
     static constexpr uint64_t bytes =
         fanout * sizeof(key_type) + num_segments * sizeof(summary_type);
 
-    node128() {}
+    node256() {}
 
     static void build(key_type const* input, uint8_t* out) {
         build_node_prefix_sums<summary_type, key_type>(input, out, segment_size,
@@ -25,10 +25,10 @@ struct node128 {
     }
 
     static std::string name() {
-        return "avx512::node128";
+        return "avx512::node256";
     }
 
-    node128(uint8_t* ptr) {
+    node256(uint8_t* ptr) {
         at(ptr);
     }
 
@@ -44,10 +44,10 @@ struct node128 {
         uint64_t j = i / segment_size;
         uint64_t k = i % segment_size;
 #ifdef AVX512
-        __m512i s1 = _mm512_load_si512((__m512i const*)tables::update_8_64 + j +
-                                       sign * num_segments);
+        __m512i s1 = _mm512_load_si512((__m512i const*)tables::update_16_32 +
+                                       j + 1 + sign * (num_segments + 1));
         __m512i r1 =
-            _mm512_add_epi64(_mm512_loadu_si512((__m512i const*)summary), s1);
+            _mm512_add_epi32(_mm512_loadu_si512((__m512i const*)summary), s1);
         _mm512_storeu_si512((__m512i*)summary, r1);
         __m512i s2 = _mm512_load_si512((__m512i const*)tables::update_16_32 +
                                        k + sign * (segment_size + 1));
@@ -74,8 +74,8 @@ struct node128 {
         if (x >= sum(fanout - 1)) return {fanout, sum(fanout - 1)};
         uint64_t i = 0;
 #ifdef AVX512
-        __mmask8 cmp1 = _mm512_cmpgt_epi64_mask(
-            _mm512_loadu_si512((__m512i const*)summary), _mm512_set1_epi64(x));
+        __mmask16 cmp1 = _mm512_cmpgt_epi32_mask(
+            _mm512_loadu_si512((__m512i const*)summary), _mm512_set1_epi32(x));
         i = cmp1 != 0 ? __builtin_ctz(cmp1) - 1 : num_segments - 1;
         assert(i < num_segments);
         x -= summary[i];

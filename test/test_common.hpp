@@ -8,7 +8,8 @@
 
 #include "../external/essentials/include/essentials.hpp"
 #include "util.hpp"
-#include "rs256/algorithms.hpp"
+// #include "rank_select_algorithms/rank.hpp"
+// #include "rank_select_algorithms/select.hpp"
 #include "types.hpp"
 
 namespace dyrs::testing {

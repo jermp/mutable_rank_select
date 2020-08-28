@@ -1,5 +1,5 @@
 #include "test_common.hpp"
-#include "test_rs256.hpp"
+#include "test_rank_select_algorithms.hpp"
 
 TEST_CASE("test broadword_loop") {
     test_rank_512<rank_modes::broadword_loop>();
