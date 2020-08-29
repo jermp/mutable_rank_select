@@ -9,7 +9,8 @@ namespace dyrs {
 template <typename SearchablePrefixSums, typename BlockTypeTraits>
 struct mutable_bitmap {
     // currently supported block sizes
-    static_assert(BlockTypeTraits::block_size == 256 or
+    static_assert(BlockTypeTraits::block_size == 64 or
+                  BlockTypeTraits::block_size == 256 or
                   BlockTypeTraits::block_size == 512);
     static constexpr uint64_t block_size = BlockTypeTraits::block_size;
     static constexpr uint64_t words_in_block = block_size / 64;
@@ -17,7 +18,7 @@ struct mutable_bitmap {
     mutable_bitmap() {}
 
     void build(uint64_t const* in, uint64_t num_64bit_words) {
-        assert(num_64bit_words * 64 <= (1ULL << (32 + 1)));
+        assert(num_64bit_words * 64 <= (1ULL << 24) * block_size);
         uint64_t num_blocks =
             std::ceil(static_cast<double>(num_64bit_words) / words_in_block);
         std::vector<uint16_t> prefix_sums_input;
@@ -37,7 +38,8 @@ struct mutable_bitmap {
     }
 
     static std::string name() {
-        return "mutable_bitmap<" + SearchablePrefixSums::name() + "," +
+        return "mutable_bitmap_" + std::to_string(block_size) + "<" +
+               SearchablePrefixSums::name() + "," +
                print_rank_mode(BlockTypeTraits::rank_mode) + "," +
                print_select_mode(BlockTypeTraits::select_mode) + ">";
     }

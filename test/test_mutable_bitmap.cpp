@@ -24,10 +24,26 @@ struct test<sizeof(logs2) / sizeof(logs2[0]), SearchablePrefixSums,
     static void run() {}
 };
 
-TEST_CASE("test avx2_mutable_bitmap") {
+TEST_CASE("test avx2_mutable_bitmap_64") {
+    test<0, avx2::segment_tree, block64_type_1>::run();
+}
+
+TEST_CASE("test avx512_mutable_bitmap_64") {
+    test<0, avx512::segment_tree, block64_type_1>::run();
+}
+
+TEST_CASE("test avx2_mutable_bitmap_256") {
     test<0, avx2::segment_tree, block256_type_1>::run();
 }
 
-TEST_CASE("test avx512_mutable_bitmap") {
+TEST_CASE("test avx512_mutable_bitmap_256") {
     test<0, avx512::segment_tree, block256_type_1>::run();
+}
+
+TEST_CASE("test avx2_mutable_bitmap_512") {
+    test<0, avx2::segment_tree, block512_type_1>::run();
+}
+
+TEST_CASE("test avx512_mutable_bitmap_512") {
+    test<0, avx512::segment_tree, block512_type_1>::run();
 }
