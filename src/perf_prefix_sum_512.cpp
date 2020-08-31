@@ -87,7 +87,7 @@ void test(std::string type) {
 
         for (uint64_t i = 0; i < num_queries; i++) {
             const uint64_t* x = &bits[(hasher.next() % num_buckets) * 512 / 64];
-            queries[i] = {x, hasher.next() % 4};
+            queries[i] = {x, hasher.next() % 8};
         }
 
         essentials::timer_type t;
