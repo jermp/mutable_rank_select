@@ -179,6 +179,9 @@ enum class select_modes : int {
     avx2_avx512_pdep = int(popcount_modes::avx2) |       //
                        int(search_modes::avx512) << 8 |  //
                        int(select64_modes::pdep) << 16,
+    avx512_avx512_pdep = int(popcount_modes::avx512) |     //
+                         int(search_modes::avx512) << 8 |  //
+                         int(select64_modes::pdep) << 16,
 #endif
 };
 
@@ -205,6 +208,7 @@ static const std::map<select_modes, std::string> select_mode_map = {
 #ifdef __AVX512VL__
     {select_modes::builtin_avx512_pdep, "builtin_avx512_pdep"},  //
     {select_modes::avx2_avx512_pdep, "avx2_avx512_pdep"},        //
+    {select_modes::avx512_avx512_pdep, "avx512_avx512_pdep"},    //
 #endif
 };
 
@@ -335,8 +339,8 @@ inline uint64_t select_u512<select_modes::builtin_avx512_pdep>(
     return i * 64 + select_u64<select64_modes::pdep>(x[i], k - sums[i]);
 }
 template <>
-inline uint64_t select_u512<select_modes::avx2_avx512_pdep>(const uint64_t* x,
-                                                            uint64_t k) {
+inline uint64_t select_u512<select_modes::avx512_avx512_pdep>(const uint64_t* x,
+                                                              uint64_t k) {
     _mm_prefetch(reinterpret_cast<const char*>(x), _MM_HINT_T0);
 
     const __m512i mx = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(x));

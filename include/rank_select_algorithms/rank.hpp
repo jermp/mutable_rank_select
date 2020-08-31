@@ -53,7 +53,9 @@ static const std::map<rank_modes, std::string> rank_mode_map = {
     {rank_modes::avx2_unrolled, "avx2_unrolled"},  //
 #endif
 #ifdef __AVX512VL__
-    {rank_modes::avx2_parallel, "avx2_parallel"},  //
+    {rank_modes::avx2_parallel, "avx2_parallel"},      //
+    {rank_modes::avx512_unrolled, "avx512_unrolled"},  //
+    {rank_modes::avx512_parallel, "avx512_parallel"},  //
 #endif
 };
 

@@ -146,8 +146,8 @@ int main(int argc, char** argv) {
 #ifdef __AVX512VL__
     else if (mode == "builtin_avx512_pdep") {
         test<select_modes::builtin_avx512_pdep>(density);
-    } else if (mode == "avx2_avx512_pdep") {
-        test<select_modes::avx2_avx512_pdep>(density);
+    } else if (mode == "avx512_avx512_pdep") {
+        test<select_modes::avx512_avx512_pdep>(density);
     }
 #endif
     else {

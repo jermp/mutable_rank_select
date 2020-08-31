@@ -24,7 +24,7 @@ TEST_CASE("test builtin_loop_pdep") {
 TEST_CASE("test builtin_avx512_pdep") {
     test_select_512<select_modes::builtin_avx512_pdep>();
 }
-TEST_CASE("test avx2_avx512_pdep") {
-    test_select_512<select_modes::avx2_avx512_pdep>();
+TEST_CASE("test avx512_avx512_pdep") {
+    test_select_512<select_modes::avx512_avx512_pdep>();
 }
 #endif
