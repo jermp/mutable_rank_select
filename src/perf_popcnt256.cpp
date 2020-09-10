@@ -28,44 +28,42 @@ static constexpr std::array<uint64_t, 1> sizes = {
 //     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
 // };
 
-template <prefixsum_modes>
-inline uint64_t prefixsum_256(const uint64_t*, uint64_t) {
+template <popcount_modes>
+inline uint64_t popcount_256(const uint64_t*) {
     assert(false);  // should not come
     return UINT64_MAX;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::loop>(const uint64_t* x,
-                                                     uint64_t k) {
-    uint64_t sum = 0;
-    for (uint64_t i = 0; i <= k; i++) { sum += x[i]; }
-    return sum;
+inline uint64_t popcount_256<popcount_modes::broadword>(const uint64_t* x) {
+    uint64_t tmp = 0;
+    tmp += popcount_u64<popcount_modes::broadword>(x[0]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[1]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[2]);
+    tmp += popcount_u64<popcount_modes::broadword>(x[3]);
+    return tmp;
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::unrolled>(const uint64_t* x,
-                                                         uint64_t k) {
-    static uint64_t sums[4] = {};
-    sums[0] = x[0];
-    sums[1] = sums[0] + x[1];
-    sums[2] = sums[1] + x[2];
-    sums[3] = sums[2] + x[3];
-    return sums[k];
+inline uint64_t popcount_256<popcount_modes::builtin>(const uint64_t* x) {
+    uint64_t tmp = 0;
+    tmp += popcount_u64<popcount_modes::builtin>(x[0]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[1]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[2]);
+    tmp += popcount_u64<popcount_modes::builtin>(x[3]);
+    return tmp;
 }
-#ifdef __AVX512VL__
-template <prefixsum_modes>
-inline uint64_t prefixsum_256(__m256i, uint64_t) {
+#ifdef __AVX2__
+template <popcount_modes>
+inline __m256i popcount_256(const __m256i) {
     assert(false);  // should not come
-    return UINT64_MAX;
+    return __m256i{};
 }
 template <>
-inline uint64_t prefixsum_256<prefixsum_modes::parallel>(__m256i x,
-                                                         uint64_t k) {
-    static uint64_t sums[4] = {};
-    _mm256_storeu_si256((__m256i*)(sums), prefixsum_m256i(x));
-    return sums[k];
+inline __m256i popcount_256<popcount_modes::avx2>(const __m256i x) {
+    return popcount_m256i(x);
 }
 #endif
 
-template <prefixsum_modes Mode>
+template <popcount_modes Mode>
 void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
@@ -80,41 +78,42 @@ void test(std::string type) {
         splitmix64 hasher(query_seed);
 
         const auto num_buckets = n / 256;
-        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
+        std::vector<const uint64_t*> queries(num_queries);
 
         for (uint64_t i = 0; i < num_queries; i++) {
-            const uint64_t* x = &bits[(hasher.next() % num_buckets) * 256 / 64];
-            queries[i] = {x, hasher.next() % 4};
+            queries[i] = &bits[(hasher.next() % num_buckets) * 256 / 64];
         }
 
         essentials::timer_type t;
         double min = 0.0, max = 0.0, avg = 0.0;
 
         auto measure = [&]() {
-            uint64_t tmp = 0;  // to avoid the optimization
-            if constexpr (Mode != prefixsum_modes::parallel) {
+            if constexpr (Mode != popcount_modes::avx2) {
+                uint64_t tmp = 0;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i].first;
-                        const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(x, k);
+                        const uint64_t* x = queries[i];
+                        tmp += popcount_256<Mode>(x);
                     }
                     t.stop();
                 }
+                std::cout << "# ignore: " << tmp << std::endl;
             } else {
+                __m256i tmp{};  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i].first;
-                        const uint64_t k = queries[i].second;
-                        tmp += prefixsum_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x), k);
+                        const uint64_t* x = queries[i];
+                        tmp = popcount_256<Mode>(
+                            _mm256_loadu_si256((__m256i const*)x));
                     }
                     t.stop();
                 }
+                uint64_t tmp2[4];
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(tmp2), tmp);
+                std::cout << "# ignore: " << tmp2[0] << std::endl;
             }
-            std::cout << "# ignore: " << tmp << std::endl;
         };
 
         static constexpr int K = 10;
@@ -172,25 +171,27 @@ void test(std::string type) {
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("mode", "Mode of rank algorithm.");
+    parser.add("mode", "Mode of popcnt algorithm.");
     if (!parser.parse()) return 1;
 
     auto mode = parser.get<std::string>("mode");
 
-    if (mode == "loop") {
-        test<prefixsum_modes::loop>(mode);
-    } else if (mode == "unrolled") {
-        test<prefixsum_modes::unrolled>(mode);
+    if (mode == "broadword") {
+        test<popcount_modes::broadword>(mode);
     }
-#ifdef __AVX512VL__
-    else if (mode == "parallel") {
-        test<prefixsum_modes::parallel>(mode);
+#ifdef __SSE4_2__
+    else if (mode == "builtin") {
+        test<popcount_modes::builtin>(mode);
+    }
+#endif
+#ifdef __AVX2__
+    else if (mode == "avx2") {
+        test<popcount_modes::avx2>(mode);
     }
 #endif
     else {
         std::cout << "unknown mode \"" << mode << "\"" << std::endl;
         return 1;
     }
-
     return 0;
 }

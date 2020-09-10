@@ -173,7 +173,7 @@ void test(std::string type) {
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("mode", "Mode of rank algorithm.");
+    parser.add("mode", "Mode of search algorithm.");
     if (!parser.parse()) return 1;
 
     auto mode = parser.get<std::string>("mode");

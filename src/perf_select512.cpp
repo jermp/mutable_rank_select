@@ -119,7 +119,7 @@ void test(const double density) {
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("mode", "Mode of rank algorithm.");
+    parser.add("mode", "Mode of select algorithm.");
     parser.add("density", "Density of ones (in [0,1]).");
     if (!parser.parse()) return 1;
 
