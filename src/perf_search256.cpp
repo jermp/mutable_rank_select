@@ -12,16 +12,55 @@
 using namespace dyrs;
 
 static constexpr int runs = 100;
-static constexpr uint32_t num_queries = 10000;
+static constexpr uint32_t num_queries = 1000000;
 static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
 static constexpr std::array<uint64_t, 1> sizes = {
-    64,
+    1ULL << 8,
 };
+// static constexpr std::array<uint64_t, 25> sizes = {
+//     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
+//     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
+//     1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
+//     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
+//     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+// };
 
-template <select64_modes Mode>
+template <search_modes>
+inline uint64_t search_256(const uint64_t*, uint64_t) {
+    assert(false);  // should not come
+    return UINT64_MAX;
+}
+template <>
+inline uint64_t search_256<search_modes::loop>(const uint64_t* x, uint64_t k) {
+    uint64_t i = 0, cnt = 0;
+    while (i < 4) {
+        cnt = x[i];
+        if (k < cnt) { break; }
+        k -= cnt;
+        i++;
+    }
+    assert(k < cnt);
+    return i;
+}
+#ifdef __AVX512VL__
+template <search_modes>
+inline uint64_t search_256(__m256i, uint64_t) {
+    assert(false);  // should not come
+    return UINT64_MAX;
+}
+template <>
+inline uint64_t search_256<search_modes::avx512>(__m256i x, uint64_t k) {
+    const __m256i msums = prefixsum_m256i(x);
+    const __m256i mk = _mm256_set_epi64x(k, k, k, k);
+    const __mmask8 mask = _mm256_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
+    return lt_cnt[mask];
+}
+#endif
+
+template <search_modes Mode>
 void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
@@ -32,16 +71,21 @@ void test(std::string type) {
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
 
+    std::vector<uint64_t> cnts(sizes.back() / 64);  // popcnts for each word
+    for (uint64_t i = 0; i < cnts.size(); i++) {
+        cnts[i] = popcount_u64<popcount_modes::broadword>(bits[i]);
+    }
+
     for (const uint64_t n : sizes) {
         splitmix64 hasher(query_seed);
 
-        const auto num_buckets = n / 64;
+        const auto num_buckets = n / 256;
         std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
 
-        for (uint64_t i = 0; i < num_queries;) {
-            const uint64_t* x = &bits[(hasher.next() % num_buckets)];
-            const uint64_t r = popcount_u64<popcount_modes::builtin>(*x);
-            if (r != 0) { queries[i++] = {x, hasher.next() % r}; }
+        for (uint64_t i = 0; i < num_queries; i++) {
+            const uint64_t* x = &cnts[(hasher.next() % num_buckets) * 256 / 64];
+            const uint64_t r = std::accumulate(x, x + 4, 0ULL);
+            queries[i] = {x, hasher.next() % r};
         }
 
         essentials::timer_type t;
@@ -49,14 +93,27 @@ void test(std::string type) {
 
         auto measure = [&]() {
             uint64_t tmp = 0;  // to avoid the optimization
-            for (int run = 0; run != runs; run++) {
-                t.start();
-                for (uint64_t i = 0; i < num_queries; i++) {
-                    const uint64_t x = *queries[i].first;
-                    const uint64_t k = queries[i].second;
-                    tmp += select_u64<Mode>(x, k);
+            if constexpr (Mode != search_modes::avx512) {
+                for (int run = 0; run != runs; run++) {
+                    t.start();
+                    for (uint64_t i = 0; i < num_queries; i++) {
+                        const uint64_t* x = queries[i].first;
+                        const uint64_t k = queries[i].second;
+                        tmp += search_256<Mode>(x, k);
+                    }
+                    t.stop();
                 }
-                t.stop();
+            } else {
+                for (int run = 0; run != runs; run++) {
+                    t.start();
+                    for (uint64_t i = 0; i < num_queries; i++) {
+                        const uint64_t* x = queries[i].first;
+                        const uint64_t k = queries[i].second;
+                        tmp += search_256<Mode>(
+                            _mm256_loadu_si256((__m256i const*)x), k);
+                    }
+                    t.stop();
+                }
             }
             std::cout << "# ignore: " << tmp << std::endl;
         };
@@ -116,26 +173,17 @@ void test(std::string type) {
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("mode", "Mode of select64 algorithm.");
+    parser.add("mode", "Mode of rank algorithm.");
     if (!parser.parse()) return 1;
 
     auto mode = parser.get<std::string>("mode");
 
-    if (mode == "broadword_sdsl") {
-        test<select64_modes::broadword_sdsl>(mode);
-    } else if (mode == "broadword_succinct") {
-        test<select64_modes::broadword_succinct>(mode);
+    if (mode == "loop") {
+        test<search_modes::loop>(mode);
     }
-#ifdef __SSE4_2__
-    else if (mode == "sse4_sdsl") {
-        test<select64_modes::sse4_sdsl>(mode);
-    } else if (mode == "sse4_succinct") {
-        test<select64_modes::sse4_succinct>(mode);
-    }
-#endif
-#ifdef __BMI2__
-    else if (mode == "pdep") {
-        test<select64_modes::pdep>(mode);
+#ifdef __AVX512VL__
+    else if (mode == "avx512") {
+        test<search_modes::avx512>(mode);
     }
 #endif
     else {
