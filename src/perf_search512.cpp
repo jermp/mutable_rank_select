@@ -43,7 +43,7 @@ inline uint64_t search_512<search_modes::loop>(const uint64_t* x, uint64_t k) {
         i++;
     }
     assert(k < cnt);
-    return i;
+    return k;
 }
 #ifdef __AVX512VL__
 template <search_modes>
@@ -56,7 +56,11 @@ inline uint64_t search_512<search_modes::avx512>(__m512i x, uint64_t k) {
     const __m512i msums = prefixsum_m512i(x);
     const __m512i mk = _mm512_set_epi64(k, k, k, k, k, k, k, k);
     const __mmask8 mask = _mm512_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
-    return lt_cnt[mask];
+    const uint8_t i = lt_cnt[mask];
+
+    static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
+    return k - sums[i];
 }
 #endif
 
