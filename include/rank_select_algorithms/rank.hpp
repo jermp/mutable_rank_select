@@ -25,6 +25,9 @@ enum class rank_modes : int {
                     int(prefixsum_modes::unrolled) << 8,
 #endif
 #ifdef __AVX512VL__
+    builtin_parallel = int(popcount_modes::builtin) |  //
+                       int(prefixsum_modes::parallel) << 8,
+
     avx2_parallel = int(popcount_modes::avx2) |  //
                     int(prefixsum_modes::parallel) << 8,
 
@@ -53,9 +56,10 @@ static const std::map<rank_modes, std::string> rank_mode_map = {
     {rank_modes::avx2_unrolled, "avx2_unrolled"},  //
 #endif
 #ifdef __AVX512VL__
-    {rank_modes::avx2_parallel, "avx2_parallel"},      //
-    {rank_modes::avx512_unrolled, "avx512_unrolled"},  //
-    {rank_modes::avx512_parallel, "avx512_parallel"},  //
+    {rank_modes::builtin_parallel, "builtin_parallel"},  //
+    {rank_modes::avx2_parallel, "avx2_parallel"},        //
+    {rank_modes::avx512_unrolled, "avx512_unrolled"},    //
+    {rank_modes::avx512_parallel, "avx512_parallel"},    //
 #endif
 };
 

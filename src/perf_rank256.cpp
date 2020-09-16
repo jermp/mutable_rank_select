@@ -143,7 +143,9 @@ int main(int argc, char** argv) {
     }
 #endif
 #ifdef __AVX512VL__
-    else if (mode == "avx2_parallel") {
+    else if (mode == "builtin_parallel") {
+        test<rank_modes::builtin_parallel>(density);
+    } else if (mode == "avx2_parallel") {
         test<rank_modes::avx2_parallel>(density);
     }
 #endif
