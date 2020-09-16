@@ -236,9 +236,34 @@ inline uint64_t rank_u512(const uint64_t* x, uint64_t i) {
 }
 #ifdef __AVX512VL__
 template <>
+inline uint64_t rank_u512<rank_modes::builtin_parallel>(const uint64_t* x,
+                                                        uint64_t i) {
+    assert(i < 512);
+    static uint64_t cnts[8];
+    cnts[0] = popcount_u64<popcount_modes::builtin>(x[0]);
+    cnts[1] = popcount_u64<popcount_modes::builtin>(x[1]);
+    cnts[2] = popcount_u64<popcount_modes::builtin>(x[2]);
+    cnts[3] = popcount_u64<popcount_modes::builtin>(x[3]);
+    cnts[4] = popcount_u64<popcount_modes::builtin>(x[4]);
+    cnts[5] = popcount_u64<popcount_modes::builtin>(x[5]);
+    cnts[6] = popcount_u64<popcount_modes::builtin>(x[6]);
+    cnts[7] = popcount_u64<popcount_modes::builtin>(x[7]);
+
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
+    const __m512i msums =
+        prefixsum_m512i(_mm512_loadu_si512((__m512i const*)cnts));
+    static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
+    return sums[block] + rank_in_block;
+}
+template <>
 inline uint64_t rank_u512<rank_modes::avx512_loop>(const uint64_t* x,
                                                    uint64_t i) {
-    assert(i < 256);
+    assert(i < 512);
     const uint64_t block = i / 64;
     const uint64_t offset = (i + 1) & 63;
     const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
@@ -257,16 +282,13 @@ template <>
 inline uint64_t rank_u512<rank_modes::avx512_unrolled>(const uint64_t* x,
                                                        uint64_t i) {
     assert(i < 512);
-
     const uint64_t block = i / 64;
     const uint64_t offset = (i + 1) & 63;
     const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     const uint64_t rank_in_block =
         popcount_u64<popcount_modes::builtin>(x[block] & mask);
-
     const __m512i mcnts = popcount_m512i(_mm512_loadu_si512((__m512i const*)x));
     const uint64_t* C = reinterpret_cast<uint64_t const*>(&mcnts);
-
     static uint64_t counts[8];
     counts[0] = 0;
     counts[1] = C[0];
@@ -282,16 +304,13 @@ template <>
 inline uint64_t rank_u512<rank_modes::avx512_parallel>(const uint64_t* x,
                                                        uint64_t i) {
     assert(i < 512);
-
     const uint64_t block = i / 64;
     const uint64_t offset = (i + 1) & 63;
     const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     const uint64_t rank_in_block =
         popcount_u64<popcount_modes::builtin>(x[block] & mask);
-
     const __m512i mcnts = popcount_m512i(_mm512_loadu_si512((__m512i const*)x));
     const __m512i msums = prefixsum_m512i(mcnts);
-
     static uint64_t sums[9] = {0ULL};  // the head element is a sentinel
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(sums + 1), msums);
     return sums[block] + rank_in_block;
