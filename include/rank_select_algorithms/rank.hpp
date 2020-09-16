@@ -21,6 +21,8 @@ enum class rank_modes : int {
                        int(prefixsum_modes::unrolled) << 8,
 #endif
 #ifdef __AVX2__
+    avx2_loop = int(popcount_modes::avx2) |  //
+                int(prefixsum_modes::loop) << 8,
     avx2_unrolled = int(popcount_modes::avx2) |  //
                     int(prefixsum_modes::unrolled) << 8,
 #endif
@@ -53,6 +55,7 @@ static const std::map<rank_modes, std::string> rank_mode_map = {
     {rank_modes::builtin_unrolled, "builtin_unrolled"},  //
 #endif
 #ifdef __AVX2__
+    {rank_modes::avx2_loop, "avx2_loop"},          //
     {rank_modes::avx2_unrolled, "avx2_unrolled"},  //
 #endif
 #ifdef __AVX512VL__
@@ -103,6 +106,24 @@ inline uint64_t rank_u256(const uint64_t* x, uint64_t i) {
     }
 }
 #ifdef __AVX2__
+template <>
+inline uint64_t rank_u256<rank_modes::avx2_loop>(const uint64_t* x,
+                                                 uint64_t i) {
+    assert(i < 256);
+    const uint64_t block = i / 64;
+    const uint64_t offset = (i + 1) & 63;
+    const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
+    const uint64_t rank_in_block =
+        popcount_u64<popcount_modes::builtin>(x[block] & mask);
+    const __m256i counts =
+        popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
+    const uint64_t* C = reinterpret_cast<uint64_t const*>(&counts);
+    uint64_t sum = 0;
+    if (block) {
+        for (uint64_t b = 0; b <= block - 1; ++b) sum += C[b];
+    }
+    return sum + rank_in_block;
+}
 template <>
 inline uint64_t rank_u256<rank_modes::avx2_unrolled>(const uint64_t* x,
                                                      uint64_t i) {
