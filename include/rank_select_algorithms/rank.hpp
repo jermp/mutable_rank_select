@@ -244,8 +244,8 @@ inline uint64_t rank_u512<rank_modes::avx512_loop>(const uint64_t* x,
     const uint64_t mask = (offset != 0) * (1ULL << offset) - 1;
     const uint64_t rank_in_block =
         popcount_u64<popcount_modes::builtin>(x[block] & mask);
-    const __m256i counts =
-        popcount_m512i(_mm512_loadu_si512((__m256i const*)x));
+    const __m512i counts =
+        popcount_m512i(_mm512_loadu_si512((__m512i const*)x));
     const uint64_t* C = reinterpret_cast<uint64_t const*>(&counts);
     uint64_t sum = 0;
     if (block) {
