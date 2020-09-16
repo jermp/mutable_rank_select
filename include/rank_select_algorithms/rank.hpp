@@ -157,10 +157,10 @@ inline uint64_t rank_u256<rank_modes::builtin_parallel>(const uint64_t* x,
     assert(i < 256);
 
     static uint64_t cnts[4];
-    cnts[0] = popcount_u64<popcount_modes::builtin>(x[0]);
-    cnts[1] = popcount_u64<popcount_modes::builtin>(x[1]);
-    cnts[2] = popcount_u64<popcount_modes::builtin>(x[2]);
-    cnts[3] = popcount_u64<popcount_modes::builtin>(x[3]);
+    cnts[0] = 0;
+    cnts[1] = popcount_u64<popcount_modes::builtin>(x[0]);
+    cnts[2] = popcount_u64<popcount_modes::builtin>(x[1]);
+    cnts[3] = popcount_u64<popcount_modes::builtin>(x[2]);
 
     const uint64_t block = i / 64;
     const uint64_t offset = (i + 1) & 63;
@@ -170,10 +170,8 @@ inline uint64_t rank_u256<rank_modes::builtin_parallel>(const uint64_t* x,
 
     const __m256i msums =
         prefixsum_m256i(_mm256_loadu_si256((__m256i const*)cnts));
-
-    static uint64_t sums[5] = {0ULL};  // the head element is a sentinel
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(sums + 1), msums);
-    return sums[block] + rank_in_block;
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(cnts), msums);
+    return cnts[block] + rank_in_block;
 }
 template <>
 inline uint64_t rank_u256<rank_modes::avx2_parallel>(const uint64_t* x,

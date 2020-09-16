@@ -136,15 +136,12 @@ int main(int argc, char** argv) {
         test<rank_modes::builtin_unrolled>(density);
     }
 #endif
-#ifdef __AVX2__
+#ifdef __AVX512VL__
     else if (mode == "avx512_loop") {
         test<rank_modes::avx512_loop>(density);
     } else if (mode == "avx512_unrolled") {
         test<rank_modes::avx512_unrolled>(density);
-    }
-#endif
-#ifdef __AVX512VL__
-    else if (mode == "builtin_parallel") {
+    } else if (mode == "builtin_parallel") {
         test<rank_modes::builtin_parallel>(density);
     } else if (mode == "avx512_parallel") {
         test<rank_modes::avx512_parallel>(density);

@@ -60,10 +60,11 @@ inline uint64_t prefixsum_512(__m512i, uint64_t) {
     return UINT64_MAX;
 }
 template <>
-inline uint64_t prefixsum_512<prefixsum_modes::parallel>(__m512i x,
+inline uint64_t prefixsum_512<prefixsum_modes::parallel>(const uint64_t* x,
                                                          uint64_t k) {
     static uint64_t sums[8] = {};
-    _mm512_storeu_si512((__m512i*)(sums), prefixsum_m512i(x));
+    _mm512_storeu_si512((__m512i*)(sums),
+                        prefixsum_m512i(_mm512_loadu_si512((__m512i const*)x)));
     return sums[k];
 }
 #endif
@@ -111,8 +112,7 @@ void test(std::string type) {
                     for (uint64_t i = 0; i < num_queries; i++) {
                         const uint64_t* x = queries[i].first;
                         const uint64_t k = queries[i].second;
-                        tmp += prefixsum_512<Mode>(
-                            _mm512_loadu_si512((__m512i const*)x), k);
+                        tmp += prefixsum_512<Mode>(x, k);
                     }
                     t.stop();
                 }
