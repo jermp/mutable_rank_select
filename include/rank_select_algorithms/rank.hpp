@@ -33,6 +33,8 @@ enum class rank_modes : int {
     avx2_parallel = int(popcount_modes::avx2) |  //
                     int(prefixsum_modes::parallel) << 8,
 
+    avx512_loop = int(popcount_modes::avx512) |  //
+                  int(prefixsum_modes::loop) << 8,
     avx512_unrolled = int(popcount_modes::avx512) |  //
                       int(prefixsum_modes::unrolled) << 8,
     avx512_parallel = int(popcount_modes::avx512) |  //
