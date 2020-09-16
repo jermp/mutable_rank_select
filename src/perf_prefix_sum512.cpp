@@ -62,6 +62,9 @@ inline uint64_t prefixsum_512(__m512i, uint64_t) {
 template <>
 inline uint64_t prefixsum_512<prefixsum_modes::parallel>(__m512i x,
                                                          uint64_t k) {
+    // volatile const __m512i y = prefixsum_m512i(x);
+    // volatile const uint64_t* C = reinterpret_cast<volatile uint64_t
+    // const*>(&y); return C[k];
     static uint64_t sums[8] = {};
     _mm512_storeu_si512((__m512i*)(sums), prefixsum_m512i(x));
     return sums[k];

@@ -59,6 +59,9 @@ inline uint64_t prefixsum_256(__m256i, uint64_t) {
 template <>
 inline uint64_t prefixsum_256<prefixsum_modes::parallel>(__m256i x,
                                                          uint64_t k) {
+    // volatile const __m256i y = prefixsum_m256i(x);
+    // volatile const uint64_t* C = reinterpret_cast<volatile uint64_t
+    // const*>(&y); return C[k];
     static uint64_t sums[4] = {};
     _mm256_storeu_si256((__m256i*)(sums), prefixsum_m256i(x));
     return sums[k];
