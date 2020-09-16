@@ -17,3 +17,6 @@ add_executable(perf_prefix_sum512 perf_prefix_sum512.cpp)
 
 add_executable(perf_search256 perf_search256.cpp)
 add_executable(perf_search512 perf_search512.cpp)
+
+add_executable(perf_popcnt_for_avx_select256 perf_popcnt_for_avx_select256.cpp)
+add_executable(perf_popcnt_for_avx_select512 perf_popcnt_for_avx_select512.cpp)
