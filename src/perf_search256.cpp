@@ -12,21 +12,20 @@
 using namespace dyrs;
 
 static constexpr int runs = 100;
-static constexpr uint32_t num_queries = 1000000;
+static constexpr uint32_t num_queries = 10000;
 static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
-static constexpr std::array<uint64_t, 1> sizes = {
-    1ULL << 8,
-};
-// static constexpr std::array<uint64_t, 25> sizes = {
-//     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-//     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-//     1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-//     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-//     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+// static constexpr std::array<uint64_t, 1> sizes = {
+//     1ULL << 8,
 // };
+static constexpr std::array<uint64_t, 25> sizes = {
+    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
+    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
+    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
+    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
+    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
 
 template <search_modes>
 inline uint64_t search_256(const uint64_t*, uint64_t) {
@@ -52,8 +51,10 @@ inline uint64_t search_256(__m256i, uint64_t) {
     return UINT64_MAX;
 }
 template <>
-inline uint64_t search_256<search_modes::avx512>(__m256i x, uint64_t k) {
-    const __m256i msums = prefixsum_m256i(x);
+inline uint64_t search_256<search_modes::avx512>(uint64_t const* x,
+                                                 uint64_t k) {
+    const __m256i msums =
+        prefixsum_m256i(_mm256_loadu_si256((__m256i const*)x));
     const __m256i mk = _mm256_set_epi64x(k, k, k, k);
     const __mmask8 mask = _mm256_cmple_epi64_mask(msums, mk);  // 1 if mc <= mk
     const uint8_t i = lt_cnt[mask];
@@ -66,26 +67,28 @@ inline uint64_t search_256<search_modes::avx512>(__m256i x, uint64_t k) {
 
 template <search_modes Mode>
 void test(std::string type) {
-    std::vector<uint64_t> bits(sizes.back() / 64);
-    auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
-    std::cout << "# number of ones: " << num_ones << " ("
-              << num_ones / double(sizes.back()) << ")" << std::endl;
+    std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
 
     std::string json("{\"type\":\"" + type + "\", ");
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
 
     std::vector<uint64_t> cnts(sizes.back() / 64);  // popcnts for each word
-    for (uint64_t i = 0; i < cnts.size(); i++) {
-        cnts[i] = popcount_u64<popcount_modes::broadword>(bits[i]);
+    {
+        std::vector<uint64_t> bits(sizes.back() / 64);
+        auto num_ones =
+            create_random_bits(bits, UINT64_MAX * density, bits_seed);
+        std::cout << "# number of ones: " << num_ones << " ("
+                  << num_ones / double(sizes.back()) << ")" << std::endl;
+        for (uint64_t i = 0; i < cnts.size(); i++) {
+            cnts[i] = popcount_u64<popcount_modes::builtin>(bits[i]);
+        }
     }
 
     for (const uint64_t n : sizes) {
         splitmix64 hasher(query_seed);
 
         const auto num_buckets = n / 256;
-        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
-
         for (uint64_t i = 0; i < num_queries; i++) {
             const uint64_t* x = &cnts[(hasher.next() % num_buckets) * 256 / 64];
             const uint64_t r = std::accumulate(x, x + 4, 0ULL);
@@ -113,8 +116,7 @@ void test(std::string type) {
                     for (uint64_t i = 0; i < num_queries; i++) {
                         const uint64_t* x = queries[i].first;
                         const uint64_t k = queries[i].second;
-                        tmp += search_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x), k);
+                        tmp += search_256<Mode>(x, k);
                     }
                     t.stop();
                 }

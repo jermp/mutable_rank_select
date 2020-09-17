@@ -17,13 +17,17 @@ static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
-static constexpr std::array<uint64_t, 1> sizes = {
-    64,
-};
+static constexpr std::array<uint64_t, 25> sizes = {
+    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
+    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
+    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
+    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
+    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
 
 template <select64_modes Mode>
 void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
+    std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
     std::cout << "# number of ones: " << num_ones << " ("
               << num_ones / double(sizes.back()) << ")" << std::endl;
@@ -36,8 +40,6 @@ void test(std::string type) {
         splitmix64 hasher(query_seed);
 
         const auto num_buckets = n / 64;
-        std::vector<std::pair<const uint64_t*, uint64_t>> queries(num_queries);
-
         for (uint64_t i = 0; i < num_queries;) {
             const uint64_t* x = &bits[(hasher.next() % num_buckets)];
             const uint64_t r = popcount_u64<popcount_modes::builtin>(*x);
