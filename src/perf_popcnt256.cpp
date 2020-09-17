@@ -12,21 +12,21 @@
 using namespace dyrs;
 
 static constexpr int runs = 100;
-static constexpr uint32_t num_queries = 1000000;
+static constexpr uint32_t num_queries = 10000;
 static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
-static constexpr std::array<uint64_t, 1> sizes = {
-    1ULL << 8,
-};
-// static constexpr std::array<uint64_t, 25> sizes = {
-//     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-//     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-//     1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-//     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-//     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+// static constexpr std::array<uint64_t, 1> sizes = {
+//     1ULL << 8,
 // };
+static constexpr std::array<uint64_t, 25> sizes = {
+    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
+    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
+    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
+    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
+    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32,
+};
 
 template <popcount_modes>
 inline uint64_t popcount_256(const uint64_t*) {
@@ -53,19 +53,20 @@ inline uint64_t popcount_256<popcount_modes::builtin>(const uint64_t* x) {
 }
 #ifdef __AVX2__
 template <popcount_modes>
-inline __m256i popcount_256(const __m256i) {
+inline __m256i avx2_popcount_256(const uint64_t* x) {
     assert(false);  // should not come
     return __m256i{};
 }
 template <>
-inline __m256i popcount_256<popcount_modes::avx2>(const __m256i x) {
-    return popcount_m256i(x);
+inline __m256i avx2_popcount_256<popcount_modes::avx2>(const uint64_t* x) {
+    return popcount_m256i(_mm256_loadu_si256((__m256i const*)x));
 }
 #endif
 
 template <popcount_modes Mode>
 void test(std::string type) {
     std::vector<uint64_t> bits(sizes.back() / 64);
+    std::vector<const uint64_t*> queries(num_queries);
     auto num_ones = create_random_bits(bits, UINT64_MAX * density, bits_seed);
     std::cout << "# number of ones: " << num_ones << " ("
               << num_ones / double(sizes.back()) << ")" << std::endl;
@@ -78,9 +79,7 @@ void test(std::string type) {
         splitmix64 hasher(query_seed);
 
         const auto num_buckets = n / 256;
-        std::vector<const uint64_t*> queries(num_queries);
-
-        for (uint64_t i = 0; i < num_queries; i++) {
+        for (uint64_t i = 0; i != num_queries; ++i) {
             queries[i] = &bits[(hasher.next() % num_buckets) * 256 / 64];
         }
 
@@ -93,20 +92,17 @@ void test(std::string type) {
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i];
-                        tmp += popcount_256<Mode>(x);
+                        tmp += popcount_256<Mode>(queries[i]);
                     }
                     t.stop();
                 }
                 std::cout << "# ignore: " << tmp << std::endl;
             } else {
-                __m256i tmp{};  // to avoid the optimization
+                __m256i tmp;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
                     for (uint64_t i = 0; i < num_queries; i++) {
-                        const uint64_t* x = queries[i];
-                        tmp = popcount_256<Mode>(
-                            _mm256_loadu_si256((__m256i const*)x));
+                        tmp = avx2_popcount_256<Mode>(queries[i]);
                     }
                     t.stop();
                 }
