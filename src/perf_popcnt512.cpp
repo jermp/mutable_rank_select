@@ -17,9 +17,6 @@ static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
-// static constexpr std::array<uint64_t, 1> sizes = {
-//     1ULL << 9,
-// };
 static constexpr std::array<uint64_t, 24> sizes = {
     1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
     1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
@@ -104,6 +101,7 @@ void test(std::string type) {
                 }
                 std::cout << "# ignore: " << tmp << std::endl;
             } else {
+#ifdef __AVX512VL__
                 __m512i tmp;  // to avoid the optimization
                 for (int run = 0; run != runs; run++) {
                     t.start();
@@ -115,6 +113,7 @@ void test(std::string type) {
                 uint64_t tmp2[8];
                 _mm512_storeu_si512(reinterpret_cast<__m512i*>(tmp2), tmp);
                 std::cout << "# ignore: " << tmp2[0] << std::endl;
+#endif
             }
         };
 

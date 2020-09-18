@@ -17,9 +17,6 @@ static constexpr uint64_t bits_seed = 13;
 static constexpr uint64_t query_seed = 71;
 static constexpr double density = 0.3;
 
-// static constexpr std::array<uint64_t, 1> sizes = {
-//     1ULL << 8,
-// };
 static constexpr std::array<uint64_t, 25> sizes = {
     1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
     1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
@@ -52,7 +49,7 @@ inline uint64_t popcount_256<popcount_modes::builtin>(const uint64_t* x) {
 }
 #ifdef __AVX2__
 template <popcount_modes>
-inline __m256i avx2_popcount_256(const uint64_t* x) {
+inline __m256i avx2_popcount_256(const uint64_t*) {
     assert(false);  // should not come
     return __m256i{};
 }
