@@ -15,21 +15,21 @@ static constexpr unsigned bits_seed = 13;
 static constexpr unsigned query_seed = 71;
 
 static constexpr uint64_t sizes[] = {
-    1ULL << 8,  1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12,
-    1ULL << 13, 1ULL << 14, 1ULL << 15, 1ULL << 16, 1ULL << 17,
-    1ULL << 18, 1ULL << 19, 1ULL << 20, 1ULL << 21, 1ULL << 22,
-    1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
-    1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
+    1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
+    1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
+    1ULL << 21, 1ULL << 22, 1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26,
+    1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
 
-template <int I, template <uint32_t> typename PrefixSums, typename BlockType>
+template <int I, template <uint32_t> typename SearchablePrefixSums,
+          typename BlockType>
 struct test {
     static void run(std::vector<uint64_t>& queries, std::string& json,
                     std::string const& operation, double density, int i) {
         if (i == -1 or i == I) {
             const uint64_t n = sizes[I];
-            static constexpr uint64_t height =
-                PrefixSums<1>::height((n + 255) / 256);
-            mutable_bitmap<PrefixSums<height>, BlockType> vec;
+            static constexpr uint64_t height = SearchablePrefixSums<1>::height(
+                (n + BlockType::block_size - 1) / BlockType::block_size);
+            mutable_bitmap<SearchablePrefixSums<height>, BlockType> vec;
             uint64_t num_ones = 0;
             {
                 std::vector<uint64_t> bits((n + 63) / 64);
@@ -137,28 +137,29 @@ struct test {
                     "," + std::to_string(tt[2]) + "],";
         }
 
-        test<I + 1, PrefixSums, BlockType>::run(queries, json, operation,
-                                                density, i);
+        test<I + 1, SearchablePrefixSums, BlockType>::run(
+            queries, json, operation, density, i);
     }
 };
 
-template <template <uint32_t> typename PrefixSums, typename BlockType>
-struct test<sizeof(sizes) / sizeof(sizes[0]), PrefixSums, BlockType> {
+template <template <uint32_t> typename SearchablePrefixSums, typename BlockType>
+struct test<sizeof(sizes) / sizeof(sizes[0]), SearchablePrefixSums, BlockType> {
     static inline void run(std::vector<uint64_t>&, std::string&,
                            std::string const&, double, int) {}
 };
 
-template <template <uint32_t> typename PrefixSums, typename BlockType>
+template <template <uint32_t> typename SearchablePrefixSums, typename BlockType>
 void perf_test(std::string const& operation, double density,
                std::string const& name, int i) {
     std::vector<uint64_t> queries(num_queries);
-    auto str = mutable_bitmap<PrefixSums<1>, BlockType>::name();
+    auto str = mutable_bitmap<SearchablePrefixSums<1>, BlockType>::name();
     if (name != "") str = name;
     std::string json("{\"type\":\"" + str + "\", ");
     if (i != -1) json += "\"num_bits\":\"" + std::to_string(sizes[i]) + "\", ";
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
-    test<0, PrefixSums, BlockType>::run(queries, json, operation, density, i);
+    test<0, SearchablePrefixSums, BlockType>::run(queries, json, operation,
+                                                  density, i);
     json.pop_back();
     json += "]}";
     std::cerr << json << std::endl;
@@ -166,8 +167,7 @@ void perf_test(std::string const& operation, double density,
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("type",
-               "Searchable Prefix-Sum type. Either 'avx2' or 'avx512'.");
+    parser.add("type", "");
     parser.add(
         "operation",
         "Either 'rank', 'select', 'flip', or 'build'. If 'build' is "
@@ -178,9 +178,9 @@ int main(int argc, char** argv) {
     parser.add("density", "Density of ones (in [0,1]).");
     parser.add("name", "Friendly name to be logged.", "-n", false);
     parser.add("i",
-               "Use a specific array size calculated as: 2^{8+i}. Running the "
+               "Use a specific array size calculated as: 2^{9+i}. Running the "
                "program without this "
-               "option will execute the benchmark for i = 0..25.",
+               "option will execute the benchmark for i = 0..23.",
                "-i", false);
     if (!parser.parse()) return 1;
 
