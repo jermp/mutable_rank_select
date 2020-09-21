@@ -16,6 +16,6 @@ types = [
 "avx512_256_c"]
 
 for t in types:
-    os.system("./perf_mutable_bitmap " + t + "flip 0.3 2>> " + output_filename + ".flip.txt")
-    os.system("./perf_mutable_bitmap " + t + "rank 0.3 2>> " + output_filename + ".rank.txt")
-    os.system("./perf_mutable_bitmap " + t + "select 0.3 2>> " + output_filename + ".select.txt")
+    os.system("./perf_mutable_bitmap " + t + " flip 0.3 2>> " + output_filename + ".flip.txt")
+    os.system("./perf_mutable_bitmap " + t + " rank 0.3 2>> " + output_filename + ".rank.txt")
+    os.system("./perf_mutable_bitmap " + t + " select 0.3 2>> " + output_filename + ".select.txt")
