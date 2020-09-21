@@ -15,7 +15,7 @@
 namespace dyrs {
 
 template <rank_modes RankMode, select_modes SelectMode>
-struct block64_type_traits {
+struct block64_type {
     static constexpr uint64_t block_size = 64;
     static constexpr rank_modes rank_mode = RankMode;
     static constexpr select_modes select_mode = SelectMode;
@@ -31,7 +31,7 @@ struct block64_type_traits {
 };
 
 template <rank_modes RankMode, select_modes SelectMode>
-struct block256_type_traits {
+struct block256_type {
     static constexpr uint64_t block_size = 256;
     static constexpr rank_modes rank_mode = RankMode;
     static constexpr select_modes select_mode = SelectMode;
@@ -45,7 +45,7 @@ struct block256_type_traits {
 };
 
 template <rank_modes RankMode, select_modes SelectMode>
-struct block512_type_traits {
+struct block512_type {
     static constexpr uint64_t block_size = 512;
     static constexpr rank_modes rank_mode = RankMode;
     static constexpr select_modes select_mode = SelectMode;
@@ -58,22 +58,28 @@ struct block512_type_traits {
     }
 };
 
-typedef block64_type_traits<rank_modes::builtin_unrolled,
-                            select_modes::builtin_loop_pdep>
+typedef block64_type<rank_modes::builtin_unrolled,
+                     select_modes::builtin_loop_pdep>
     block64_type_1;
 
-typedef block256_type_traits<rank_modes::builtin_unrolled,
-                             select_modes::builtin_loop_pdep>
-    block256_type_1;
+typedef block256_type<rank_modes::builtin_unrolled,
+                      select_modes::builtin_loop_pdep>
+    block256_type_a;
 
-typedef block512_type_traits<rank_modes::builtin_unrolled,
-                             select_modes::builtin_loop_pdep>
-    block512_type_1;
+typedef block256_type<rank_modes::builtin_loop, select_modes::builtin_loop_pdep>
+    block256_type_b;
+
+typedef block512_type<rank_modes::builtin_unrolled,
+                      select_modes::builtin_loop_pdep>
+    block512_type_a;
+
+typedef block512_type<rank_modes::builtin_loop, select_modes::builtin_loop_pdep>
+    block512_type_b;
 
 #ifdef __AVX512VL__
-typedef block256_type_traits<rank_modes::builtin_unrolled,
-                             select_modes::avx2_avx512_pdep>
-    block256_type_2;
+typedef block256_type<rank_modes::builtin_unrolled,
+                      select_modes::avx2_avx512_pdep>
+    block256_type_c;
 #endif
 
 }  // namespace dyrs

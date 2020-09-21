@@ -6,13 +6,12 @@
 
 namespace dyrs {
 
-template <typename SearchablePrefixSums, typename BlockTypeTraits>
+template <typename SearchablePrefixSums, typename BlockType>
 struct mutable_bitmap {
     // currently supported block sizes
-    static_assert(BlockTypeTraits::block_size == 64 or
-                  BlockTypeTraits::block_size == 256 or
-                  BlockTypeTraits::block_size == 512);
-    static constexpr uint64_t block_size = BlockTypeTraits::block_size;
+    static_assert(BlockType::block_size == 64 or BlockType::block_size == 256 or
+                  BlockType::block_size == 512);
+    static constexpr uint64_t block_size = BlockType::block_size;
     static constexpr uint64_t words_in_block = block_size / 64;
 
     mutable_bitmap() {}
@@ -40,8 +39,8 @@ struct mutable_bitmap {
     static std::string name() {
         return "mutable_bitmap_" + std::to_string(block_size) + "<" +
                SearchablePrefixSums::name() + "," +
-               print_rank_mode(BlockTypeTraits::rank_mode) + "," +
-               print_select_mode(BlockTypeTraits::select_mode) + ">";
+               print_rank_mode(BlockType::rank_mode) + "," +
+               print_select_mode(BlockType::select_mode) + ">";
     }
 
     uint64_t size() const {
@@ -83,7 +82,7 @@ struct mutable_bitmap {
         uint64_t block = i / block_size;
         uint64_t offset = i & (block_size - 1);
         return (block ? m_index.sum(block - 1) : 0) +
-               BlockTypeTraits::rank(&m_bits[words_in_block * block], offset);
+               BlockType::rank(&m_bits[words_in_block * block], offset);
     }
 
     uint64_t select(uint64_t i) const {
@@ -91,7 +90,7 @@ struct mutable_bitmap {
         auto [block, sum] = m_index.search(i);
         uint64_t offset = i - sum;  // i - m_index.sum(block - 1);
         return block_size * block +
-               BlockTypeTraits::select(&m_bits[words_in_block * block], offset);
+               BlockType::select(&m_bits[words_in_block * block], offset);
     }
 
 private:

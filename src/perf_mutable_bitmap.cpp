@@ -21,7 +21,7 @@ static constexpr uint64_t sizes[] = {
     1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26, 1ULL << 27,
     1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
 
-template <int I, template <uint32_t> typename PrefixSums, typename RankSelect>
+template <int I, template <uint32_t> typename PrefixSums, typename BlockType>
 struct test {
     static void run(std::vector<uint64_t>& queries, std::string& json,
                     std::string const& operation, double density, int i) {
@@ -29,7 +29,7 @@ struct test {
             const uint64_t n = sizes[I];
             static constexpr uint64_t height =
                 PrefixSums<1>::height((n + 255) / 256);
-            mutable_bitmap<PrefixSums<height>, RankSelect> vec;
+            mutable_bitmap<PrefixSums<height>, BlockType> vec;
             uint64_t num_ones = 0;
             {
                 std::vector<uint64_t> bits((n + 63) / 64);
@@ -137,28 +137,28 @@ struct test {
                     "," + std::to_string(tt[2]) + "],";
         }
 
-        test<I + 1, PrefixSums, RankSelect>::run(queries, json, operation,
-                                                 density, i);
+        test<I + 1, PrefixSums, BlockType>::run(queries, json, operation,
+                                                density, i);
     }
 };
 
-template <template <uint32_t> typename PrefixSums, typename RankSelect>
-struct test<sizeof(sizes) / sizeof(sizes[0]), PrefixSums, RankSelect> {
+template <template <uint32_t> typename PrefixSums, typename BlockType>
+struct test<sizeof(sizes) / sizeof(sizes[0]), PrefixSums, BlockType> {
     static inline void run(std::vector<uint64_t>&, std::string&,
                            std::string const&, double, int) {}
 };
 
-template <template <uint32_t> typename PrefixSums, typename RankSelect>
+template <template <uint32_t> typename PrefixSums, typename BlockType>
 void perf_test(std::string const& operation, double density,
                std::string const& name, int i) {
     std::vector<uint64_t> queries(num_queries);
-    auto str = mutable_bitmap<PrefixSums<1>, RankSelect>::name();
+    auto str = mutable_bitmap<PrefixSums<1>, BlockType>::name();
     if (name != "") str = name;
     std::string json("{\"type\":\"" + str + "\", ");
     if (i != -1) json += "\"num_bits\":\"" + std::to_string(sizes[i]) + "\", ";
     json += "\"density\":\"" + std::to_string(density) + "\", ";
     json += "\"timings\":[";
-    test<0, PrefixSums, RankSelect>::run(queries, json, operation, density, i);
+    test<0, PrefixSums, BlockType>::run(queries, json, operation, density, i);
     json.pop_back();
     json += "]}";
     std::cerr << json << std::endl;
@@ -192,23 +192,48 @@ int main(int argc, char** argv) {
     if (parser.parsed("name")) name = parser.get<std::string>("name");
     if (parser.parsed("i")) i = parser.get<int>("i");
 
-    if (type == "avx2_1") {
-        perf_test<avx2::segment_tree, block256_type_1>(operation, density, name,
+    if (type == "avx2_256_a") {
+        perf_test<avx2::segment_tree, block256_type_a>(operation, density, name,
                                                        i);
-    } else if (type == "avx512_1") {
-        perf_test<avx512::segment_tree, block256_type_1>(operation, density,
+    } else if (type == "avx512_256_a") {
+        perf_test<avx512::segment_tree, block256_type_a>(operation, density,
                                                          name, i);
+    }
 
-#ifdef __AVX512VL__
-    } else if (type == "avx2_2") {
-        perf_test<avx2::segment_tree, block256_type_2>(operation, density, name,
+    else if (type == "avx2_256_b") {
+        perf_test<avx2::segment_tree, block256_type_b>(operation, density, name,
                                                        i);
-    } else if (type == "avx512_2") {
-        perf_test<avx512::segment_tree, block256_type_2>(operation, density,
+    } else if (type == "avx512_256_b") {
+        perf_test<avx512::segment_tree, block256_type_b>(operation, density,
                                                          name, i);
+    }
+
+    else if (type == "avx2_512_a") {
+        perf_test<avx2::segment_tree, block512_type_a>(operation, density, name,
+                                                       i);
+    } else if (type == "avx512_512_a") {
+        perf_test<avx512::segment_tree, block512_type_a>(operation, density,
+                                                         name, i);
+    }
+
+    else if (type == "avx2_512_b") {
+        perf_test<avx2::segment_tree, block512_type_b>(operation, density, name,
+                                                       i);
+    } else if (type == "avx512_512_b") {
+        perf_test<avx512::segment_tree, block512_type_b>(operation, density,
+                                                         name, i);
+    }
+#ifdef __AVX512VL__
+    else if (type == "avx2_256_c") {
+        perf_test<avx2::segment_tree, block256_type_c>(operation, density, name,
+                                                       i);
+    } else if (type == "avx512_256_c") {
+        perf_test<avx512::segment_tree, block256_type_c>(operation, density,
+                                                         name, i);
+    }
 #endif
 
-    } else {
+    else {
         std::cout << "unknown type \"" << type << "\"" << std::endl;
         return 1;
     }
