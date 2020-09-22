@@ -15,6 +15,7 @@ enum class rank_modes : int {
     broadword_unrolled = int(popcount_modes::broadword) |  //
                          int(prefixsum_modes::unrolled) << 8,
 #ifdef __SSE4_2__
+    builtin = int(popcount_modes::builtin),
     builtin_loop = int(popcount_modes::builtin) |  //
                    int(prefixsum_modes::loop) << 8,
     builtin_unrolled = int(popcount_modes::builtin) |  //
@@ -53,6 +54,7 @@ static const std::map<rank_modes, std::string> rank_mode_map = {
     {rank_modes::broadword_loop, "broadword_loop"},          //
     {rank_modes::broadword_unrolled, "broadword_unrolled"},  //
 #ifdef __SSE4_2__
+    {rank_modes::builtin, "builtin"},                    //
     {rank_modes::builtin_loop, "builtin_loop"},          //
     {rank_modes::builtin_unrolled, "builtin_unrolled"},  //
 #endif

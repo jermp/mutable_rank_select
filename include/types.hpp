@@ -23,10 +23,10 @@ struct block64_type {
     inline static uint64_t rank(const uint64_t* x, uint64_t i) {
         i += 1;
         uint64_t mask = i == 64 ? -1 : (i != 0) * (1ULL << i) - 1;
-        return popcount_u64<extract_popcount_mode(RankMode)>(*x & mask);
+        return popcount_u64<popcount_modes::builtin>(*x & mask);
     }
     inline static uint64_t select(const uint64_t* x, uint64_t i) {
-        return select_u64<extract_select64_mode(SelectMode)>(*x, i);
+        return select_u64<select64_modes::pdep>(*x, i);
     }
 };
 
@@ -58,9 +58,8 @@ struct block512_type {
     }
 };
 
-typedef block64_type<rank_modes::builtin_unrolled,
-                     select_modes::builtin_loop_pdep>
-    block64_type_1;
+typedef block64_type<rank_modes::builtin, select_modes::pdep>
+    block64_type_default;
 
 typedef block256_type<rank_modes::builtin_unrolled,
                       select_modes::builtin_loop_pdep>

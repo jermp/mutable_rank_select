@@ -168,6 +168,7 @@ enum class select_modes : int {
                             int(select64_modes::sse4_succinct) << 16,
 #endif
 #ifdef __BMI2__
+    pdep = int(select64_modes::pdep),
     builtin_loop_pdep = int(popcount_modes::builtin) |  //
                         int(search_modes::loop) << 8 |  //
                         int(select64_modes::pdep) << 16,
@@ -203,6 +204,7 @@ static const std::map<select_modes, std::string> select_mode_map = {
     {select_modes::builtin_loop_succinct, "builtin_loop_succinct"},  //
 #endif
 #ifdef __BMI2__
+    {select_modes::pdep, "pdep"},                            //
     {select_modes::builtin_loop_pdep, "builtin_loop_pdep"},  //
 #endif
 #ifdef __AVX512VL__
