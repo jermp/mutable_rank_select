@@ -1,7 +1,7 @@
-Dynamic Rank/Select over Bitvectors
+Rank/Select Queries over Mutable Bitmaps
 ------
 
-A C++ library providing rank/select queries over dynamic bitvectors.
+A C++ library providing rank/select queries over mutable bitmaps.
 
 Compiling the code <a name="compiling"></a>
 ------------------
