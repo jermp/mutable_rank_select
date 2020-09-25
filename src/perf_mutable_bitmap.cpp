@@ -18,10 +18,7 @@ static constexpr uint64_t sizes[] = {
     1ULL << 9,  1ULL << 10, 1ULL << 11, 1ULL << 12, 1ULL << 13, 1ULL << 14,
     1ULL << 15, 1ULL << 16, 1ULL << 17, 1ULL << 18, 1ULL << 19, 1ULL << 20,
     1ULL << 21, 1ULL << 22, 1ULL << 23, 1ULL << 24, 1ULL << 25, 1ULL << 26,
-    1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30
-    // commented out for 64-bit blocks
-    // , 1ULL << 31, 1ULL << 32
-};
+    1ULL << 27, 1ULL << 28, 1ULL << 29, 1ULL << 30, 1ULL << 31, 1ULL << 32};
 
 template <int I, template <uint32_t> typename SearchablePrefixSums,
           typename BlockType>
@@ -195,13 +192,15 @@ int main(int argc, char** argv) {
     if (parser.parsed("name")) name = parser.get<std::string>("name");
     if (parser.parsed("i")) i = parser.get<int>("i");
 
-    if (type == "avx2_64") {
-        perf_test<avx2::segment_tree, block64_type_default>(operation, density,
-                                                            name, i);
-    } else if (type == "avx512_64") {
-        perf_test<avx512::segment_tree, block64_type_default>(operation,
-                                                              density, name, i);
-    }
+    // if (type == "avx2_64") {
+    //     perf_test<avx2::segment_tree, block64_type_default>(operation,
+    //     density,
+    //                                                         name, i);
+    // } else if (type == "avx512_64") {
+    //     perf_test<avx512::segment_tree, block64_type_default>(operation,
+    //                                                           density, name,
+    //                                                           i);
+    // }
 
     else if (type == "avx2_256_a") {
         perf_test<avx2::segment_tree, block256_type_a>(operation, density, name,
