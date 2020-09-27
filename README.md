@@ -7,17 +7,16 @@ Given a *mutable* bitmap B[0..u) where n bits are set, the *rank/select problem*
 
 - rank(i) is the number of bits set in B[0..i], for 0 ≤ i < u.
 - select(i) is the position of the i-th bit set, for 0 ≤ i < n.
-- flip(i) updates the i-th bit to 1 if it is 0 and vice versa, for 0 ≤ i < u.
+- flip(i) toggles B[i], for 0 ≤ i < u.
 - access(i) = B[i], for 0 ≤ i < u.
 
-The library implements the following data structures to solve the problem.
+The input bitmap is partitioned into blocks and a tree index is built over them. 
+The tree index implemented in the library is an optimized b-ary Segment-Tree with
+SIMD AVX2/AVX-512 instructions.
+You can test a block size of 256 or 512 bits, and various rank/select algorithms for the blocks such as broadword techniques, CPU intrinsics, and SIMD instructions.
 
-- b-ary Segment-Tree with AVX2 instructions.
-- b-ary Segment-Tree with AVX-512 instructions.
 
-Each data structure paritiions the input bitmap into small blocks and builds the tree index for the blocks. You can test a block size of 256 or 512 bits, and various rank/select algorithms for small blocks such as broadword techniques, CPU intrinsics, or SIMD instructions.
-
-For a description and anlysis of all these data structures, see the paper Rank/Select Queries over Mutable Bitmaps, by Giulio Ermanno Pibiri and Shunsuke Kanda.
+For a description and anlysis of all these data structures, see the paper *Rank/Select Queries over Mutable Bitmaps*, by Giulio Ermanno Pibiri and Shunsuke Kanda.
 
 Compiling the code <a name="compiling"></a>
 ------------------
@@ -27,7 +26,7 @@ To build the code, [`CMake`](https://cmake.org/) is required.
 
 Clone the repository with
 
-	git clone --recursive https://github.com/jermp/dynamic_rank_select.git
+	git clone --recursive https://github.com/jermp/mutable_rank_select.git
 
 If you have cloned the repository without `--recursive`, you will need to perform the following commands before
 compiling:

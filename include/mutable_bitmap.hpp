@@ -55,7 +55,7 @@ struct mutable_bitmap {
         return m_bits;
     }
 
-    inline bool at(uint64_t i) const {
+    inline bool access(uint64_t i) const {
         assert(i < size());
         uint64_t r;
         uint64_t w = m_bits[i / 64];
@@ -69,7 +69,7 @@ struct mutable_bitmap {
 
     void flip(uint64_t i) {
         assert(i < size());
-        bool bit = at(i);
+        bool bit = access(i);
         uint64_t word = i / 64;
         uint64_t offset = i & 63;
         uint64_t block = i / block_size;
