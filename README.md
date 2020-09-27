@@ -3,6 +3,22 @@ Rank/Select Queries over Mutable Bitmaps
 
 A C++ library providing rank/select queries over mutable bitmaps.
 
+Given a *mutable* bitmap B[0..u) where n bits are set, the *rank/select problem* asks for a data structure built from B that supports:
+
+- rank(i) is the number of bits set in B[0..i], for 0 ≤ i < u.
+- select(i) is the position of the i-th bit set, for 0 ≤ i < n.
+- flip(i) updates the i-th bit to 1 if it is 0 and vice versa, for 0 ≤ i < u.
+- access(i) = B[i], for 0 ≤ i < u.
+
+The library implements the following data structures to solve the problem.
+
+- b-ary Segment-Tree with AVX2 instructions.
+- b-ary Segment-Tree with AVX-512 instructions.
+
+Each data structure paritiions the input bitmap into small blocks and builds the tree index for the blocks. You can test a block size of 256 or 512 bits, and various rank/select algorithms for small blocks such as broadword techniques, CPU intrinsics, or SIMD instructions.
+
+For a description and anlysis of all these data structures, see the paper Rank/Select Queries over Mutable Bitmaps, by Giulio Ermanno Pibiri and Shunsuke Kanda.
+
 Compiling the code <a name="compiling"></a>
 ------------------
 
@@ -50,10 +66,36 @@ For a testing environment, use the following instead:
     cmake .. -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZERS=On
     make -j
 
-<!--Benchmarks
+Benchmarks
 ---------
 
-TODO-->
+To benchmark the running time of rank, select, and flip for the disired data structure, use the program `src/perf_mutable_bitmap`. Running the program without arguments will show what arguments are required. (See also the file `src/perf_mutable_bitmap.cpp` for a list of available data structure types.)
+
+Below we show some examples.
+
+- The command
+
+```
+./perf_mutable_bitmap avx2_256_a rank 0.3
+```
+
+will benchmark the speed of rank queries for the b-ary Segment-Tree data structure with AVX2 instructions for the bitmap of density 30%, where the block size is 256. The bitmap is tested by varying the size from 2<sup>9</sup> to 2<sup>32</sup>. The suffix `_a` indicates the type of rank algorithms for a small bitmap (See `include/types.hpp` for the details).
+
+- The command
+
+```
+./perf_mutable_bitmap avx512_512_b select 0.5
+```
+
+will benchmark the speed of select queries for the b-ary Segment-Tree data structure with AVX-512 instructions for the bitmap of density 50%, where the block size is 512.
+
+- The command
+
+```
+./perf_mutable_bitmap avx512_256_c flip 0.8
+```
+
+will benchmark the speed of flip queries for the b-ary Segment-Tree data structure with AVX-512 instructions for the bitmap of density 80%, where the block size is 256.
 
 Unit tests <a name="testing"></a>
 -----------
