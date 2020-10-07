@@ -12,7 +12,7 @@
 
 #include "mutable_bitmap.hpp"
 
-namespace dyrs {
+namespace mrs {
 
 template <rank_modes RankMode, select_modes SelectMode>
 struct block64_type {
@@ -81,4 +81,4 @@ typedef block256_type<rank_modes::builtin_unrolled,
     block256_type_c;
 #endif
 
-}  // namespace dyrs
+}  // namespace mrs

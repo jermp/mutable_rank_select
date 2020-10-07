@@ -8,7 +8,7 @@
 #include <immintrin.h>
 #include <nmmintrin.h>
 
-namespace dyrs {
+namespace mrs {
 
 // From https://github.com/simongog/sdsl-lite/blob/master/include/sdsl/bits.hpp
 static const uint8_t lt_cnt[] = {
@@ -334,4 +334,4 @@ inline __m512i prefixsum_m512i(__m512i x) {
 }
 #endif
 
-}  // namespace dyrs
+}  // namespace mrs

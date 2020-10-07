@@ -7,7 +7,7 @@
 #include "../external/cmd_line_parser/include/parser.hpp"
 #include "types.hpp"
 
-using namespace dyrs;
+using namespace mrs;
 
 static constexpr int runs = 100;
 static constexpr uint32_t num_queries = 10000;

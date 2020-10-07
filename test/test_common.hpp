@@ -10,7 +10,7 @@
 #include "util.hpp"
 #include "types.hpp"
 
-namespace dyrs::testing {
+namespace mrs::testing {
 static constexpr uint32_t sizes[] = {
     5,       9,       13,      25,       37,       251,      316,     398,
     501,     630,     794,     1000,     1258,     1584,     1995,    2511,
@@ -27,7 +27,7 @@ static constexpr uint32_t logs2[] = {
     // , 21, 22, 23, 24, 25,
     // 26, 27, 28, 29, 30, 31, 32
 };
-}  // namespace dyrs::testing
+}  // namespace mrs::testing
 
-using namespace dyrs;
-using namespace dyrs::testing;
+using namespace mrs;
+using namespace mrs::testing;

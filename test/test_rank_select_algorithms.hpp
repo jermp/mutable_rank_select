@@ -3,7 +3,7 @@
 #include "rank_select_algorithms/rank.hpp"
 #include "rank_select_algorithms/select.hpp"
 
-namespace dyrs::testing {
+namespace mrs::testing {
 
 template <uint64_t Words>
 uint64_t naive_rank_for_words(uint64_t const* x, uint64_t i) {
@@ -116,4 +116,4 @@ void test_select_512() {
     std::cout << "\teverything's good" << std::endl;
 }
 
-}  // namespace dyrs::testing
+}  // namespace mrs::testing

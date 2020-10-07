@@ -7,7 +7,7 @@
 #include "util.hpp"
 #include "segment_tree_macros.hpp"
 
-namespace dyrs::avx512 {
+namespace mrs::avx512 {
 
 template <uint32_t Height = 1>
 struct segment_tree {
@@ -178,4 +178,4 @@ private:
     std::vector<uint8_t> m_data;
 };
 
-}  // namespace dyrs::avx512
+}  // namespace mrs::avx512

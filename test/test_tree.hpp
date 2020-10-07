@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs::testing {
+namespace mrs::testing {
 
 template <typename Tree>
 void test_tree(size_t n) {
@@ -82,4 +82,4 @@ void test_tree(size_t n) {
     std::cout << "\teverything's good" << std::endl;
 }
 
-}  // namespace dyrs::testing
+}  // namespace mrs::testing

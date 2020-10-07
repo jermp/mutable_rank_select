@@ -10,7 +10,7 @@
 
 #define AVX2_ALIGNEMENT ALIGNED(32)
 
-namespace dyrs::avx2::tables {
+namespace mrs::avx2::tables {
 
 // used by node32
 static const int64_t update_4_64[4 * 4 * 2] AVX2_ALIGNEMENT = {
@@ -73,4 +73,4 @@ static const int16_t update_16_16[16 * 16 * 2] AVX2_ALIGNEMENT = {
 
 };
 
-}  // namespace dyrs::avx2::tables
+}  // namespace mrs::avx2::tables

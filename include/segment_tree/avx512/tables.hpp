@@ -10,7 +10,7 @@
 
 #define AVX512_ALIGNEMENT ALIGNED(64)
 
-namespace dyrs::avx512::tables {
+namespace mrs::avx512::tables {
 
 // used by node128
 static const int64_t update_8_64[8 * 8 * 2] AVX512_ALIGNEMENT = {
@@ -179,4 +179,4 @@ static const int16_t update_32_16[32 * 32 * 2] AVX512_ALIGNEMENT = {
 
 };
 
-}  // namespace dyrs::avx512::tables
+}  // namespace mrs::avx512::tables

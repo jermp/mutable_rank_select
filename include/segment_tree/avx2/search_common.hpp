@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs::avx2 {
+namespace mrs::avx2 {
 
 inline int ctzll(unsigned long long w) {
     // the if is necessary since result is undefined otherwise,
@@ -26,4 +26,4 @@ inline static uint64_t index_fs(__m256i const& vec) {
     return index;
 }
 
-}  // namespace dyrs::avx2
+}  // namespace mrs::avx2

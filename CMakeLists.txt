@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(DYRS) # Dynamic Rank/Select
+project(MRS) # Mutable Rank/Select
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
@@ -44,7 +44,7 @@ find_package(Boost 1.42.0 COMPONENTS unit_test_framework iostreams system filesy
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-include_directories(${DYRS_SOURCE_DIR}/include)
+include_directories(${MRS_SOURCE_DIR}/include)
 
 add_subdirectory(external)
 add_subdirectory(src)

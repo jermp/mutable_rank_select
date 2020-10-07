@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs::testing {
+namespace mrs::testing {
 
 template <typename Node, uint64_t max_int>
 void test_node() {
@@ -81,4 +81,4 @@ void test_node() {
     std::cout << "\teverything's good" << std::endl;
 }
 
-}  // namespace dyrs::testing
+}  // namespace mrs::testing

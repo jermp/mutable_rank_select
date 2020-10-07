@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace dyrs {
+namespace mrs {
 
 /* * * * * * * * * * * * * * * * * *
  *
@@ -302,4 +302,4 @@ inline uint64_t rank_u512<rank_modes::avx512_parallel>(const uint64_t* x,
 }
 #endif
 
-}  // namespace dyrs
+}  // namespace mrs

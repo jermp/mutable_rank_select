@@ -4,7 +4,7 @@
 #include "rank_select_algorithms/rank.hpp"
 #include "rank_select_algorithms/select.hpp"
 
-namespace dyrs {
+namespace mrs {
 
 template <typename SearchablePrefixSums, typename BlockType>
 struct mutable_bitmap {
@@ -98,4 +98,4 @@ private:
     std::vector<uint64_t> m_bits;
 };
 
-}  // namespace dyrs
+}  // namespace mrs

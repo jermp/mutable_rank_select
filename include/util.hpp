@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs {
+namespace mrs {
 
 struct search_result {
     uint64_t position;
@@ -73,4 +73,4 @@ uint64_t create_random_bits(std::vector<uint64_t>& bits, uint64_t threshold,
     return num_ones;
 }
 
-}  // namespace dyrs
+}  // namespace mrs

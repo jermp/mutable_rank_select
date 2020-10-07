@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace dyrs {
+namespace mrs {
 
 /* * * * * * * * * * * * * * * * * *
  *
@@ -358,4 +358,4 @@ inline uint64_t select_u512<select_modes::avx512_avx512_pdep>(const uint64_t* x,
 }
 #endif
 
-}  // namespace dyrs
+}  // namespace mrs

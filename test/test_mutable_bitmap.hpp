@@ -1,6 +1,6 @@
 #pragma once
 
-namespace dyrs::testing {
+namespace mrs::testing {
 
 template <typename MutableBitmap>
 void test_mutable_bitmap(uint64_t num_bits, double density) {
@@ -90,4 +90,4 @@ void test_mutable_bitmap(uint64_t num_bits, double density) {
     std::cout << "\teverything's good" << std::endl;
 }
 
-}  // namespace dyrs::testing
+}  // namespace mrs::testing

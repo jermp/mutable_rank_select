@@ -7,7 +7,7 @@
 #include "search_common.hpp"
 #include "util.hpp"
 
-namespace dyrs::avx2 {
+namespace mrs::avx2 {
 
 struct node128 {
     typedef uint16_t key_type;
@@ -105,4 +105,4 @@ private:
     key_type* keys;
 };
 
-}  // namespace dyrs::avx2
+}  // namespace mrs::avx2

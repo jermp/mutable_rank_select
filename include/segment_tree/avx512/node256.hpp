@@ -6,7 +6,7 @@
 #include "tables.hpp"
 #include "util.hpp"
 
-namespace dyrs::avx512 {
+namespace mrs::avx512 {
 
 struct node256 {
     typedef uint32_t key_type;
@@ -104,4 +104,4 @@ private:
     key_type* keys;
 };
 
-}  // namespace dyrs::avx512
+}  // namespace mrs::avx512
