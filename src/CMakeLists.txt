@@ -9,6 +9,7 @@ add_executable(perf_mutable_bitmap perf_mutable_bitmap.cpp)
 add_executable(perf_hft perf_hft.cpp)
 add_executable(perf_immutable_bitmap perf_immutable_bitmap.cpp)
 target_link_libraries(perf_immutable_bitmap sdsl succinct ${Boost_LIBRARIES})
+add_executable(perf_compressed_bitmap perf_compressed_bitmap.cpp)
 
 add_executable(perf_popcnt256 perf_popcnt256.cpp)
 add_executable(perf_popcnt512 perf_popcnt512.cpp)
