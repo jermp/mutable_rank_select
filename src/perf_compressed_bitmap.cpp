@@ -3,6 +3,9 @@
  *  Note that the implementation seems to handle bitmaps in big-endian.
  *  So, the results of rank/select would be different from our implementation,
  *  although it is not related to the performance comparison.
+ *
+ *  EXCEPTION REPORT:
+ *  A segmentation fault occurred on rank_mpe(1|2|3) for N=2^27 and more :(
  */
 #include <iostream>
 #include <iomanip>
