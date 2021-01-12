@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
     //                                                           i);
     // }
 
-    else if (type == "avx2_256_a") {
+    if (type == "avx2_256_a") {
         perf_test<avx2::segment_tree, block256_type_a>(operation, density, name,
                                                        i);
     } else if (type == "avx512_256_a") {
