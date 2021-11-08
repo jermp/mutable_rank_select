@@ -1,5 +1,7 @@
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jermp/mutable_rank_select.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jermp/mutable_rank_select/context:cpp)
+
 Rank/Select Queries over Mutable Bitmaps
-------
+========================================
 
 A C++ library providing rank/select queries over mutable bitmaps.
 
