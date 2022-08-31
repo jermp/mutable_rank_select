@@ -18,7 +18,9 @@ SIMD AVX2/AVX-512 instructions.
 You can test a block size of 256 or 512 bits, and various rank/select algorithms for the blocks such as broadword techniques, CPU intrinsics, and SIMD instructions.
 
 
-For a description and anlysis of all these data structures, see the paper [Rank/Select Queries over Mutable Bitmaps](http://arxiv.org/abs/2009.12809), by Giulio Ermanno Pibiri and Shunsuke Kanda, Information Systems (INFOSYS), 2021.
+For a description and anlysis of all these data structures, see the paper [Rank/Select Queries over Mutable Bitmaps](https://www.sciencedirect.com/science/article/pii/S0306437921000235), by Giulio Ermanno Pibiri and Shunsuke Kanda, Information Systems (INFOSYS), 2021.
+
+Please cite this paper if you use the library.
 
 Compiling the code <a name="compiling"></a>
 ------------------
